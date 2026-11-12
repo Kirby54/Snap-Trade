@@ -1,124 +1,160 @@
 #!/usr/bin/env python3
-"""Vérifie un plan de trade et calcule R:R et taille de position.
+"""Vérifie un plan et dimensionne une position (Python standard, sans réseau).
 
-Exemples :
-  python3 plan.py --side long  --entry 364.18 --sl 358.32 --tp 370.04 375.90
-  python3 plan.py --side short --entry 67450 --sl 68120 --tp 66110 65300 --account 2000 --risk-pct 1
-  python3 plan.py --side long  --entry 1.0850 --sl 1.0822 --tp 1.0910 --account 2000 --risk-pct 1 --point-value 100000
-
-Code de sortie : 0 = plan valide, 1 = plan refusé, 2 = arguments invalides.
+Prix et objectifs dans la devise de cotation ; capital, budget, coûts et
+notionnel dans la devise du compte. --fx-rate convertit cotation -> compte.
+Code de sortie : 0 valide, 1 refus de risque, 2 arguments invalides.
+Les pertes calculées sont des estimations, pas une garantie d'exécution.
 """
 import argparse
+from decimal import Decimal, InvalidOperation, ROUND_FLOOR, localcontext
 import json
+import math
 import sys
 
 MIN_RR = 1.5
 MAX_RISK_PCT = 2.0
 
 
-def fmt(x: float) -> str:
-    if x == 0:
-        return "0"
+def number(text):
+    try:
+        value = Decimal(text)
+        if not value.is_finite() or not math.isfinite(float(value)):
+            raise ValueError
+        return value
+    except (InvalidOperation, ValueError, OverflowError):
+        raise argparse.ArgumentTypeError("nombre fini requis")
+
+
+def fmt(x):
     mag = abs(x)
     decimals = 2 if mag >= 100 else 4 if mag >= 1 else 6
     return f"{x:,.{decimals}f}".replace(",", " ")
 
 
-def main() -> int:
-    for stream in (sys.stdout, sys.stderr):
-        try:
-            stream.reconfigure(encoding="utf-8")
-        except Exception:
-            pass
-    p =argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--side", required=True, choices=["long", "short", "buy", "sell"])
-    p.add_argument("--entry", type=float, required=True)
-    p.add_argument("--sl", type=float, required=True, help="stop loss")
-    p.add_argument("--tp", type=float, nargs="+", required=True, help="un ou plusieurs take profit")
-    p.add_argument("--account", type=float, help="capital du compte")
-    p.add_argument("--risk-pct", type=float, default=1.0, help="risque par trade en %% du capital (défaut 1)")
-    p.add_argument("--risk-amount", type=float, help="risque par trade en montant (remplace --risk-pct)")
-    p.add_argument("--point-value", type=float, default=1.0,
-                   help="valeur d'un point de prix pour 1 unité/contrat/lot (1 actions/crypto, 100000 lot forex, 50 ES...)")
-    p.add_argument("--min-rr", type=float, default=MIN_RR)
-    p.add_argument("--json", action="store_true")
-    a = p.parse_args()
+def plain(value):
+    if isinstance(value, Decimal):
+        out = float(value)
+        if not math.isfinite(out) or (value != 0 and out == 0):
+            raise ValueError("calcul hors de la plage numérique prise en charge")
+        return out
+    if isinstance(value, dict):
+        return {k: plain(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [plain(v) for v in value]
+    return value
 
+
+def calculate(a):
     side = "long" if a.side in ("long", "buy") else "short"
     sign = 1 if side == "long" else -1
     errors, warnings = [], []
-
-    if min(a.entry, a.sl, *a.tp) <= 0:
-        print("Prix invalides : tous les prix doivent être > 0.", file=sys.stderr)
-        return 2
-
     risk = (a.entry - a.sl) * sign
     if risk <= 0:
-        errors.append(f"stop du mauvais côté : pour un {side}, le stop doit être "
-                      f"{'sous' if side == 'long' else 'au-dessus de'} l'entrée")
-    elif risk / a.entry < 0.0005:
-        errors.append("stop trop serré (< 0,05 % du prix) : le spread et le bruit le toucheraient")
-
+        errors.append(f"stop du mauvais côté pour un {side}")
+    elif risk / a.entry * 100 < a.min_stop_pct:
+        errors.append(f"stop trop serré (< {a.min_stop_pct} % du prix)")
+    for first, second in zip(a.tp, a.tp[1:]):
+        if (second - first) * sign <= 0:
+            errors.append("les TP doivent être strictement ordonnés du plus proche au plus éloigné")
+            break
+    # Coût aller-retour estimé par unité, dans la devise du compte.
+    loss_per_unit = risk * a.point_value * a.fx_rate + a.cost_per_unit
     targets = []
     for tp in a.tp:
         reward = (tp - a.entry) * sign
         if reward <= 0:
             errors.append(f"TP {fmt(tp)} du mauvais côté de l'entrée")
-            continue
-        targets.append({"tp": tp, "reward": reward, "rr": reward / risk if risk > 0 else None})
-
-    if risk > 0 and targets and targets[0]["rr"] < a.min_rr:
-        errors.append(f"R:R vers TP1 = {targets[0]['rr']:.2f}, sous le minimum {a.min_rr}")
-        # prix d'entrée limite qui ramènerait TP1 au R:R minimum
-        tp1 = targets[0]["tp"]
-        better = (tp1 + a.min_rr * a.sl) / (1 + a.min_rr)
-        warnings.append(f"entrée limite à {fmt(better)} pour atteindre {a.min_rr}R vers TP1 avec le même stop")
-
+        net_reward = reward * a.point_value * a.fx_rate - a.cost_per_unit
+        targets.append({"tp": tp, "reward": reward,
+                        "rr": reward / risk if risk > 0 else None,
+                        "net_rr": net_reward / loss_per_unit if risk > 0 else None})
+    if risk > 0 and targets[0]["net_rr"] < a.min_rr:
+        errors.append(f"R:R net vers TP1 = {targets[0]['net_rr']:.2f}, sous le minimum {a.min_rr}")
+        cost_price = a.cost_per_unit / (a.point_value * a.fx_rate)
+        better = (a.tp[0] + a.min_rr * a.sl - sign * (1 + a.min_rr) * cost_price) / (1 + a.min_rr)
+        if better > 0 and (better - a.sl) * sign > 0:
+            warnings.append(f"entrée limite à {fmt(better)} pour atteindre {a.min_rr}R net ; confirmer le setup à ce prix")
     size = None
     if a.account is not None or a.risk_amount is not None:
-        if a.risk_amount is not None:
-            budget = a.risk_amount
-        else:
-            if a.risk_pct > MAX_RISK_PCT:
-                warnings.append(f"risque de {a.risk_pct} % par trade, au-dessus des {MAX_RISK_PCT} % recommandés")
-            budget = a.account * a.risk_pct / 100
+        budget = a.risk_amount if a.risk_amount is not None else a.account * a.risk_pct / 100
+        effective_pct = budget / a.account * 100 if a.account is not None else None
+        if effective_pct is not None and effective_pct > MAX_RISK_PCT:
+            message = f"risque de {effective_pct.normalize():f} % au-dessus des {MAX_RISK_PCT} % recommandés"
+            warnings.append(message)
+            if not a.allow_high_risk:
+                errors.append(message + " ; --allow-high-risk requis pour une demande explicite")
         if risk > 0:
-            qty = budget / (risk * a.point_value)
-            size = {
-                "risk_budget": budget,
-                "qty": qty,
-                "max_loss": qty * risk * a.point_value,
-                "notional": qty * a.entry * a.point_value,
-            }
-            if a.account and size["notional"] > a.account:
-                warnings.append(f"exposition {fmt(size['notional'])} > capital {fmt(a.account)} : levier "
-                                f"x{size['notional'] / a.account:.1f} nécessaire")
+            qty = budget / loss_per_unit
+            notional_per_unit = a.entry * a.point_value * a.fx_rate
+            if a.max_notional is not None:
+                qty = min(qty, a.max_notional / notional_per_unit)
+            if a.qty_step is not None:
+                qty = (qty / a.qty_step).to_integral_value(rounding=ROUND_FLOOR) * a.qty_step
+            if qty <= 0 or (a.min_qty is not None and qty < a.min_qty):
+                errors.append("budget insuffisant pour la quantité minimale / le pas de quantité")
+            size = {"risk_budget": budget, "qty": qty,
+                    "max_loss": qty * loss_per_unit,
+                    "notional": qty * notional_per_unit}
+            if a.account is not None and size["notional"] > a.account:
+                warnings.append(f"exposition {fmt(size['notional'])} > capital {fmt(a.account)} : levier x{size['notional'] / a.account:.1f} nécessaire")
+    if a.qty_step is None and size is not None:
+        warnings.append("quantité théorique : préciser --qty-step et --min-qty selon le courtier")
+    warnings.append("perte estimée au stop ; gaps, frais ou glissement non renseignés peuvent l'augmenter")
+    return {"side": side, "entry": a.entry, "sl": a.sl, "risk_per_unit": risk,
+            "risk_pct_of_price": risk / a.entry * 100 if risk > 0 else None,
+            "fx_rate": a.fx_rate, "cost_per_unit": a.cost_per_unit,
+            "targets": targets, "size": size, "valid": not errors,
+            "errors": errors, "warnings": warnings}
 
-    result = {
-        "side": side, "entry": a.entry, "sl": a.sl, "risk_per_unit": risk,
-        "risk_pct_of_price": risk / a.entry * 100 if risk > 0 else None,
-        "targets": targets, "size": size, "valid": not errors,
-        "errors": errors, "warnings": warnings,
-    }
 
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--side", required=True, choices=["long", "short", "buy", "sell"])
+    for flag in ("entry", "sl"):
+        p.add_argument("--" + flag, type=number, required=True)
+    p.add_argument("--tp", type=number, nargs="+", required=True)
+    for flag in ("account", "risk-amount", "qty-step", "min-qty", "max-notional"):
+        p.add_argument("--" + flag, type=number)
+    for flag, default in (("risk-pct", "1"), ("point-value", "1"), ("min-rr", "1.5"),
+                          ("fx-rate", "1"), ("cost-per-unit", "0"), ("min-stop-pct", "0.05")):
+        p.add_argument("--" + flag, type=number, default=Decimal(default))
+    p.add_argument("--allow-high-risk", action="store_true")
+    p.add_argument("--json", action="store_true")
+    a = p.parse_args()
+    for key, value in vars(a).items():
+        if isinstance(value, Decimal):
+            nonnegative = key in ("cost_per_unit", "min_stop_pct")
+            if value < 0 or (not nonnegative and value == 0):
+                p.error(f"--{key.replace('_', '-')} doit être {'>= 0' if nonnegative else '> 0'}")
+    if any(tp <= 0 for tp in a.tp):
+        p.error("tous les TP doivent être > 0")
+    if a.risk_pct > 100:
+        p.error("--risk-pct doit être <= 100")
+    if a.account is not None and a.risk_amount is not None and a.risk_amount > a.account:
+        p.error("le risque en montant dépasse le capital")
+    if a.account is None and a.risk_amount is None and any(v is not None for v in (a.qty_step, a.min_qty, a.max_notional)):
+        p.error("les contraintes de taille demandent --account ou --risk-amount")
+    try:
+        with localcontext() as ctx:
+            ctx.prec = 40
+            result = plain(calculate(a))
+    except (ArithmeticError, ValueError) as exc:
+        p.error(f"calcul impossible : {exc}")
     if a.json:
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
     else:
-        print(f"{'VALIDE' if not errors else 'REFUSÉ'}  {side.upper()}  entrée {fmt(a.entry)}  stop {fmt(a.sl)}")
-        if risk > 0:
-            print(f"  Risque / unité  {fmt(risk)} ({risk / a.entry * 100:.2f} % du prix)")
-        for i, t in enumerate(targets, 1):
-            rr = f"{t['rr']:.2f}R" if t["rr"] is not None else "?"
-            print(f"  TP{i}            {fmt(t['tp'])}  ({rr})")
-        if size:
-            unit = "unités" if a.point_value == 1 else "lots/contrats"
-            print(f"  Taille          {size['qty']:.6g} {unit}  (risque {fmt(size['risk_budget'])}, "
-                  f"perte max au stop {fmt(size['max_loss'])}, exposition {fmt(size['notional'])})")
-        for e in errors:
-            print(f"  - refus : {e}")
-        for w in warnings:
-            print(f"  - note : {w}")
-    return 0 if not errors else 1
+        print(f"{'VALIDE' if result['valid'] else 'REFUSÉ'} {result['side'].upper()} entrée {fmt(result['entry'])} stop {fmt(result['sl'])}")
+        for i, target in enumerate(result["targets"], 1):
+            rr = f"{target['net_rr']:.2f}R net" if target["net_rr"] is not None else "R:R indisponible"
+            print(f"  TP{i} {fmt(target['tp'])} ({rr})")
+        if result["size"]:
+            s = result["size"]
+            print(f"  Quantité {s['qty']:.10g} ; perte estimée {fmt(s['max_loss'])} ; exposition {fmt(s['notional'])}")
+        for label in ("errors", "warnings"):
+            for message in result[label]:
+                print(f"  {label}: {message}")
+    return 0 if result["valid"] else 1
 
 
 if __name__ == "__main__":

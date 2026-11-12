@@ -63,6 +63,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import math
 import os
 import re
 import sys
@@ -276,10 +277,40 @@ def fingerprint(order):
 
 
 def _f(x):
-    try:
-        return float(x)
-    except (TypeError, ValueError):
+    if isinstance(x, bool):
         return None
+    try:
+        value = float(x)
+        return value if math.isfinite(value) else None
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def validate_numbers(value, path="input"):
+    """Fail closed on non-finite JSON values and malformed numeric fields."""
+    numeric = set(PRICE_FIELDS) | {
+        "entry", "stop", "target", "shares", "cash", "cost", "max_loss",
+        "budget", "cash_buffer_pct", "max_position_pct", "max_order_usd",
+        "min_order_usd", "max_loss_per_trade_usd", "max_daily_loss_usd",
+        "max_trades_per_day", "max_orders_per_day", "min_reward_risk",
+        "trail_price", "trail_percent",
+    }
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in numeric and item is not None:
+                number = _f(item)
+                if number is None:
+                    raise RiskError(f"{path}.{key}: finite number required")
+                if key not in ("cash", "shares") and number < 0:
+                    raise RiskError(f"{path}.{key}: negative value refused")
+                if key in ("cash_buffer_pct", "max_position_pct") and number > 100:
+                    raise RiskError(f"{path}.{key}: percentage exceeds 100")
+            validate_numbers(item, f"{path}.{key}")
+    elif isinstance(value, list):
+        for i, item in enumerate(value):
+            validate_numbers(item, f"{path}[{i}]")
+    elif isinstance(value, float) and not math.isfinite(value):
+        raise RiskError(f"{path}: finite number required")
 
 
 def money(x):
@@ -375,6 +406,12 @@ def check(orders, cfg, portfolio=None, prices=None, state=None, today=None, now=
 
     now          naive UTC (default: the real clock); its New York date is "today"
     price_times  {SYM: naive UTC time of that price}; None = every price counts as fresh"""
+    for name, doc in (("config", cfg), ("portfolio", portfolio), ("orders", orders),
+                      ("state", state), ("prices", prices)):
+        validate_numbers(doc, name)
+    for symbol, price in (prices or {}).items():
+        if _f(price) is None or _f(price) <= 0:
+            raise RiskError(f"prices.{symbol}: positive finite price required")
     c = dict(DEFAULTS)
     c.update(cfg or {})
     prices = {str(k).upper(): float(v) for k, v in (prices or {}).items() if _f(v)}
@@ -756,8 +793,8 @@ def load_prices(pdoc):
     as_of = parse_utc(pdoc.get("as_of"))
     detail = pdoc.get("detail") or {}
     for s, p in prices.items():
-        if _f(p) is None:
-            continue
+        if _f(p) is None or _f(p) <= 0:
+            raise RiskError(f"prices.{s}: positive finite price required")
         s = str(s).upper()
         out[s] = float(p)
         d = detail.get(s) or {}

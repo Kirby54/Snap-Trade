@@ -87,7 +87,7 @@ class Plan(unittest.TestCase):
 
     def test_high_risk_pct_warning(self):
         _, r, _ = run("--side", "long", "--entry", 100, "--sl", 98, "--tp", 104, "--account", 1000, "--risk-pct", 5)
-        self.assertTrue(any("5.0 %" in w for w in r["warnings"]))
+        self.assertTrue(any("5 %" in w for w in r["warnings"]))
 
     def test_invalid_prices(self):
         code, _, err = run("--side", "long", "--entry", 0, "--sl", -1, "--tp", 1)

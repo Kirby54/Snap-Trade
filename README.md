@@ -1,7 +1,7 @@
 # 📸 Snap & Trade
 
 [![tests](https://github.com/Kirby54/Snap-Trade/actions/workflows/tests.yml/badge.svg)](https://github.com/Kirby54/Snap-Trade/actions/workflows/tests.yml)
-![version](https://img.shields.io/badge/version-2.1.0-blue)
+![version](https://img.shields.io/badge/version-2.2.0-blue)
 ![licence](https://img.shields.io/badge/licence-MIT-green)
 ![python](https://img.shields.io/badge/python-3.10%2B-blue)
 
@@ -24,7 +24,7 @@ TradingView, MT4/MT5, FX Replay, Binance...) et reçois l'analyse étape par
 
 ## ⚡ Installation
 
-**Claude Code (plugin, une commande)** :
+**Claude Code (plugin)** :
 
 ```
 /plugin marketplace add Kirby54/Snap-Trade
@@ -90,7 +90,8 @@ confiance, setup, actif. Fait pour les backtests FX Replay sans biais
 
 Backtest en cours sur FX Replay, protocole
 [ici](skills/snap-and-trade/references/backtest.md). Les chiffres seront
-publiés ici tels quels, pertes comprises, une fois 30 trades clôturés.
+publiés ici tels quels, pertes comprises. Un premier lot de 30 trades
+est exploratoire ; il ne suffit pas à démontrer un avantage statistique.
 
 ## 🧪 Tests
 
@@ -98,7 +99,38 @@ publiés ici tels quels, pertes comprises, une fois 30 trades clôturés.
 python -m unittest discover -s tests
 ```
 
-324 tests, lancés à chaque push sur Linux, Windows et macOS.
+La suite est lancée à chaque push et pull request sur Linux, Windows et macOS,
+avec Python 3.10 et 3.13. Le badge indique son état réel. Pour les contrôles
+hors réseau et les conventions, voir [CONTRIBUTING.md](CONTRIBUTING.md).
+
+```bash
+python tools/validate_repo.py
+```
+
+### Calculs de risque (v2.2)
+
+`plan.py` rejette les nombres non finis, les budgets invalides et les TP mal
+ordonnés. Il peut intégrer conversion de devise (`--fx-rate`), coûts par unité
+(`--cost-per-unit`), pas de quantité (`--qty-step`), minimum (`--min-qty`) et
+plafond de notionnel (`--max-notional`). Les quantités sont arrondies vers le
+bas. Un risque supérieur à 2 % exige `--allow-high-risk` et une demande explicite.
+
+[Unités, exemples et limites](skills/snap-and-trade/references/dimensionnement.md).
+Le journal accepte `--cost-r` pour déduire les coûts réalisés des statistiques ;
+0 signifie brut. CSV v2.1 compatibles, accès exclusif et écriture atomique.
+
+### Ce qui est vérifié, ce qui reste à mesurer
+
+| Élément | État |
+| --- | --- |
+| Calculs, validations et comportements des modules | Tests automatisés sur fixtures |
+| Contrats du dépôt, manifestes et références locales | Contrôles automatiques hors réseau |
+| Lecture des captures par le modèle | À mesurer sur un jeu de captures figé et des réponses archivées |
+| Rentabilité après coûts et stabilité hors échantillon | Non démontrées ; aucun résultat inventé |
+| Intégration réelle avec fournisseurs / courtier | Dépend des services et autorisations ; tests sur fixtures insuffisants |
+
+Une CI verte ne valide pas une stratégie de trading. Aucun ordre ni test en
+argent réel n'est nécessaire pour contribuer.
 
 ## ⚠️ Avertissement
 

@@ -37,6 +37,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import math
 import os
 import re
 import sys
@@ -159,9 +160,12 @@ def _str_num(v):
 
 
 def _f(x):
+    if isinstance(x, bool):
+        return None
     try:
-        return float(x)
-    except (TypeError, ValueError):
+        value = float(x)
+        return value if math.isfinite(value) else None
+    except (TypeError, ValueError, OverflowError):
         return None
 
 

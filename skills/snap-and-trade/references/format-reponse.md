@@ -59,14 +59,16 @@ résistance).
 | ⚪ | volume | volume non affiché |
 
 **6 · Vérification** — `plan.py` : ✅ VALIDE · risque 80 pts (0,28 %) ·
-TP1 1,81R · TP2 2,44R. ❌ Variante refusée : vente sous 28 205 → 0,91R.
+TP1 1,81R brut · TP2 2,44R brut (coûts non renseignés). ❌ Variante refusée : vente sous 28 205 → 0,91R.
 
 **7 · Contexte** — 🟡 indice, pas d'action US : news et résultats non
 vérifiés.
 
 ---
 
-### 🔴 SHORT · NDX · 5 min
+### ⚪ PAS DE TRADE maintenant · NDX · 5 min
+
+Scénario SHORT conditionnel : attendre le rejet clôturé, puis recalculer.
 
 **Confiance** 🟢🟢⚪⚪⚪ faible (2/5) · **R:R** 1,8 / 2,4
 
@@ -81,13 +83,15 @@ vérifiés.
 **⚙️ Gestion** — à TP1, sortir la moitié et remonter le stop à l'entrée.
 
 **📏 Taille** — 1 MNQ = 160 $ de risque au stop · 1 NQ = 1 600 $. Donne ton
-capital pour un calcul exact.
+capital, le contrat exact et la devise du compte pour un calcul estimé.
+Ces multiplicateurs ne rendent pas un niveau NDX directement exécutable sur
+un future : utiliser les prix de son propre graphique et ses spécifications.
 
 **🟡 À vérifier** — gap à l'ouverture : au-delà de 28 375 ou sous 28 150, le
 plan est caduc, renvoyer une capture.
 
-**➡️ Suite** — noter ce signal dans le journal · `alerts` sur 28 295 /
-28 375 · `budget` pour la taille.
+**➡️ Suite** — attendre la confirmation et actualiser la capture ; noter
+le scénario dans le journal. Les modules actions US ne couvrent pas NDX/MNQ.
 
 <sub>Lecture technique, pas un conseil financier. Teste en démo d'abord.</sub>
 
