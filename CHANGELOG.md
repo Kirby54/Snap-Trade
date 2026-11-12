@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.3.0 — 2026-11-13
+- Available-evidence confluence score; required context and explicit abstention.
+- Two-timeframe reading, latest-price source checks and opening-plan mode.
+- Minimum 1.5 average candle ranges for screenshot stops (`--avg-candle`).
+- Short response by default, expanded analysis on request.
+- Short entry/exit analysis and opt-in short plan sizing; existing sell replay retained.
+- Synthetic visual fixtures, archival-answer evaluator, illustrative demo GIF.
+- Reproducible installable ZIP/checksum and clean-directory CLI smoke test.
+- Release publication after the full cross-platform test matrix.
+- No backtest or model accuracy results invented; real validation still required.
+
 ## 2.2.0 — 2026-11-13
 - Validation stricte des nombres, budgets, coûts, ordre des TP et résultats du journal.
 - Dimensionnement décimal : conversion de devise, coûts, pas/minimum de quantité,

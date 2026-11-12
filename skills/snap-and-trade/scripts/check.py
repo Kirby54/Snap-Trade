@@ -351,6 +351,8 @@ def account(cfg, portfolio, prices):
         if prices.get(t):
             values[t] = shares[t] * prices[t]
         else:
+            if shares[t] < 0:
+                raise RiskError("short position %s requires a current price to value its liability" % t)
             basis = sum(_f(l.get("cost")) or 0 for l in p.get("lots", []))
             values[t] = basis
             warnings.append("no price for %s: valued at its cost basis %s" % (t, money(basis)))
@@ -531,7 +533,7 @@ def check(orders, cfg, portfolio=None, prices=None, state=None, today=None, now=
         if ref is None:
             cands = [(p, w) for p, w in ((plan_entry, "plan"), (live, "price")) if p]
             if cands:
-                ref, ref_from = max(cands, key=lambda x: x[0])
+                ref, ref_from = (max if side == "buy" else min)(cands, key=lambda x: x[0])
                 ref = _cent(ref)
                 if live and ref_from == "price" and plan_entry and live > plan_entry + CENT:
                     info.append("%s last %s is above the plan's entry %s: the risk is measured from %s"
@@ -579,20 +581,31 @@ def check(orders, cfg, portfolio=None, prices=None, state=None, today=None, now=
         cash = acct["cash"]
         total = cash + sum(acct["values"].values())
         buffer_usd = total * float(c.get("cash_buffer_pct") or 0) / 100.0
+        # Restrict sale proceeds AND an equal amount of own collateral for shorts.
+        # This conservative full-notional proxy is not the broker's margin model.
+        short_liability = sum(-min(v, 0.0) for v in acct["values"].values())
+        free_cash = cash - 2 * short_liability
+        if kind == "entry" and total <= 0:
+            later.append("account: positive equity required for a new entry")
+        if value is not None and kind == "entry":
+            pos_after = abs(held_value + (value if side == "buy" else -value))
+            limit = total * float(c.get("max_position_pct") or 100) / 100.0
+            if total > 0 and pos_after > limit + CENT:
+                later.append("position: %s would be %s, %.1f%% of the %s account, over your %s%% cap"
+                             % (sym, money(pos_after), 100.0 * pos_after / total, money(total),
+                                _pct(c["max_position_pct"])))
+        if value is not None and side == "sell" and kind == "entry":
+            after_collateral = free_cash - value
+            if after_collateral < max(buffer_usd, 0) - CENT:
+                later.append("collateral: short notional exceeds free cash after restricted proceeds, full-notional collateral and buffer")
         if value is not None and side == "buy" and kind == "entry":
-            after_cash = cash - value
+            after_cash = free_cash - value
             if after_cash < -CENT and not c.get("allow_margin"):
                 later.append("cash: needs %s but only %s cash; that would be margin (borrowed money)"
                              % (money(value), money(cash)))
             elif after_cash < buffer_usd - CENT:
                 later.append("cash: leaves %s cash, under your %s%% buffer of %s"
                              % (money(max(after_cash, 0)), _pct(c["cash_buffer_pct"]), money(buffer_usd)))
-            pos_after = held_value + value
-            limit = total * float(c.get("max_position_pct") or 100) / 100.0
-            if total > 0 and pos_after > limit + CENT:
-                later.append("position: %s would be %s, %.1f%% of the %s account, over your %s%% cap"
-                             % (sym, money(pos_after), 100.0 * pos_after / total, money(total),
-                                _pct(c["max_position_pct"])))
         if side == "sell" and sym and kind == "entry":
             if q is not None:
                 over = q > held + 1e-9
@@ -713,7 +726,7 @@ def check(orders, cfg, portfolio=None, prices=None, state=None, today=None, now=
             elif side == "sell":
                 if value is not None:
                     acct["cash"] += value
-                    acct["values"][sym] = max(acct["values"].get(sym, 0.0) - value, 0.0)
+                    acct["values"][sym] = acct["values"].get(sym, 0.0) - value
                 if q is not None:
                     acct["shares"][sym] = held - q
                 elif ref and value is not None:

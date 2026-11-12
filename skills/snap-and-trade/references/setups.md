@@ -1,67 +1,27 @@
-# Setups : entrée, stop, objectifs
+# Setups: structural entry, stop and targets
 
-Chaque setup existe en LONG et en SHORT (miroir). « Marge » = 10 à 25 % de
-la taille moyenne d'une bougie récente. « R » = distance entrée → stop.
+Every setup has a mirrored long/short form. Read only closed candles. All
+setups must pass the same mandatory context, trigger and numerical checks.
 
-## 1. Cassure (breakout / breakdown)
+A buffer beyond a pivot can be 10–25% of a recent mean candle range. That is
+**only the buffer**, not the whole stop distance. Total entry-stop distance
+must be at least 1.5 times the mean high-low range of 10–20 closed execution
+candles. If that pushes the stop off defensible structure or makes net
+reward/risk below 1.5, return NO TRADE. Do not force a trade by changing prices.
 
-- **Quand** : range ou résistance testée plusieurs fois, puis une bougie
-  clôture franchement au-delà, idéalement avec du volume.
-- **Entrée** : à la clôture de la bougie de cassure, ou mieux, en limite
-  sur le retest du niveau cassé.
-- **Stop** : de l'autre côté du niveau cassé, ou sous le milieu du range,
-  + marge.
-- **TP** : hauteur du range reportée depuis la cassure (TP1), niveau
-  suivant (TP2).
-- **Refus** : cassure sans clôture (simple mèche), ou déjà trop loin du
-  niveau pour un R:R ≥ 1.5.
+| Setup | Trigger and entry | Structural stop | Targets |
+| --- | --- | --- | --- |
+| Breakout / breakdown | Closed candle outside a repeatedly tested boundary; prefer a confirmed retest | Other side of the invalidating boundary/pivot, with buffer and volatility floor | Next visible level first, then next structure; projected range only if not blocked by nearer structure |
+| Trend pullback | Return to visible support/resistance followed by a closed rejection | Beyond the pullback swing plus buffer and floor | Prior trend extreme, then next level |
+| Range | Closed rejection at a clearly tested range boundary | Beyond that boundary plus buffer and floor | Midpoint first, opposite boundary second; skip if too narrow |
+| Reversal | Major visible level, structural break and closed retest; divergence only if displayed | Beyond the invalidating extreme plus buffer and floor | Next opposing structure, then prior move origin |
+| Chart pattern | Closed neckline/edge break or confirmed retest | Beyond internal invalidating pivot with buffer and floor | Nearer visible structure before a measured projection |
 
-## 2. Pullback dans la tendance
+Counter to higher-timeframe structure: confidence stays low regardless of raw
+score. A missing higher timeframe is not countertrend evidence: request it
+and abstain. Do not confuse a forming breakout with confirmation.
 
-- **Quand** : tendance claire, le prix revient sur un support (ancien
-  sommet, MM 20/50, zone Fibonacci 38–61 %) et une bougie de rejet clôture.
-- **Entrée** : clôture de la bougie de rejet, ou au-dessus de son sommet
-  (long) / sous son creux (short).
-- **Stop** : sous le creux du pullback (long) / au-dessus du sommet (short)
-  + marge.
-- **TP** : dernier sommet de la tendance (TP1), extension / niveau suivant
-  (TP2).
-
-## 3. Range (rebond sur bornes)
-
-- **Quand** : range net, au moins deux touches de chaque côté, pas de
-  tendance forte.
-- **Entrée** : rejet sur la borne basse (long) ou haute (short).
-- **Stop** : de l'autre côté de la borne + marge.
-- **TP** : milieu du range (TP1), borne opposée (TP2).
-- **Refus** : range trop étroit pour un R:R ≥ 1.5.
-
-## 4. Retournement
-
-- **Quand** : tendance longue qui bute sur un niveau majeur, avec divergence
-  RSI/MACD et cassure de structure (dernier creux cassé pour un short, dernier
-  sommet cassé pour un long).
-- **Entrée** : retest du niveau de cassure de structure.
-- **Stop** : au-delà de l'extrême du mouvement + marge.
-- **TP** : premier niveau de structure opposé (TP1), départ du dernier
-  mouvement (TP2).
-- **Confiance** : plafonnée à « faible » en contre-tendance, quel que soit le
-  score de confluence (même règle que SKILL.md).
-
-## 5. Figures (drapeau, triangle, épaule-tête-épaule, double sommet/creux)
-
-- **Entrée** : clôture hors de la figure (cassure de la ligne de cou, du
-  bord du drapeau ou du triangle), ou retest.
-- **Stop** : de l'autre côté de la figure / dernier pivot interne + marge.
-- **TP** : objectif classique (hauteur de la figure ou du mât reportée),
-  borné par le prochain niveau visible.
-
-## Pas de trade
-
-- Prix au milieu d'un range, loin de tout niveau.
-- Pas de stop logique, ou stop logique trop loin pour un R:R ≥ 1.5.
-- Signaux contradictoires (tendance haussière, cassure baissière en cours,
-  volume nul).
-- Capture illisible (prix, bougies ou unité de temps).
-
-Toujours dire ce qui créerait un trade : niveau, sens, condition de clôture.
+NO TRADE: price in the middle of a range, no defensible stop, unconfirmed
+trigger, conflicting or stale chart identity, unreadable price/timeframe,
+missing context, insufficient observations or rejected numerical plan.
+Always state one concrete condition that would justify reassessment.

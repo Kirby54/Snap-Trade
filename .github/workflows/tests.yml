@@ -25,7 +25,41 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: Contrats du dépôt et syntaxe Python
+      - name: Repository contracts and Python syntax
         run: python tools/validate_repo.py
+      - name: Synthetic fixture integrity
+        run: python tools/benchmark.py --check-fixtures
       - name: Tests
         run: python -m unittest discover -s tests
+
+  release:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build reproducible skill ZIP
+        run: python tools/package_skill.py
+      - name: Publish requested releases after tests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -c "import json; assert json.load(open('.claude-plugin/plugin.json'))['version'] == '2.3.0'"
+          if ! gh release view v2.1.0 >/dev/null 2>&1; then
+            gh release create v2.1.0 --target d41057cf4ac1c2534056f8fe82e229dcf9e3f01f --title "v2.1.0 (historical snapshot)" --notes-file docs/releases/v2.1.0.md --latest=false
+          fi
+          if ! gh release view v2.3.0 >/dev/null 2>&1; then
+            gh release create v2.3.0 dist/snap-and-trade.zip dist/snap-and-trade.zip.sha256 --target "$RELEASE_COMMIT" --title "Snap & Trade v2.3.0" --notes-file docs/releases/v2.3.0.md --latest
+          fi

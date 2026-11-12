@@ -1,6 +1,11 @@
 
 # Module broker
 
+Short-entry execution is blocked by this helper. Short analysis/sizing/risk
+may pass, but the helper only tracks long positions and their exits. Do not
+interpret an analysis PASS as broker readiness.
+
+
 The Order Executor is the only skill in this pack that can lead to a real
 order, so it is the strictest. An order reaches the market only after three
 separate gates, every time, for every order:

@@ -1,6 +1,13 @@
 
 # Module risk
 
+Short analysis requires explicit allow_short. Position caps use absolute
+exposure, the ledger retains negative short market value, and free cash
+excludes sale proceeds plus an equal own-collateral reserve. This conservative
+proxy is not the broker margin model. The broker helper still blocks short
+entries because its local fill tracker is long-only.
+
+
 The Risk Manager is the gate between a proposal and the broker. Every order
 written by trader-budget or trader-broker's flatten passes through it. A
 BLOCK is final for that order: it does not go to the user for a yes, and it

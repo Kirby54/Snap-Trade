@@ -176,8 +176,9 @@ def load_config(path):
 
 def _f(x):
     try:
-        return float(x)
-    except (TypeError, ValueError):
+        value = float(x)
+        return value if math.isfinite(value) and not isinstance(x, bool) else None
+    except (TypeError, ValueError, OverflowError):
         return None
 
 
@@ -317,8 +318,12 @@ def size_trade(plan, cfg, budget=None, limit=None, price=None, cash=None, today=
     if not sym:
         raise SizeError("the plan has no symbol (run trader-exit)")
     side = str(plan.get("side") or "buy").strip().lower()
-    if side != "buy":
-        raise SizeError("this pack sizes long (buy) day trades only; the plan says %r" % side)
+    side = {"long": "buy", "short": "sell"}.get(side, side)
+    if side not in ("buy", "sell"):
+        raise SizeError("side must be buy or sell")
+    if side == "sell" and not c.get("allow_short", False):
+        raise SizeError("short sizing requires explicit allow_short: true; long (buy) day trades only by default")
+    sign = 1 if side == "buy" else -1
     if today and plan.get("date") and str(plan["date"]) != today:
         raise SizeError("the plan is for %s and today is %s in New York: make a new plan with trader-exit"
                         % (plan["date"], today))
@@ -332,7 +337,7 @@ def size_trade(plan, cfg, budget=None, limit=None, price=None, cash=None, today=
         raise SizeError("%s is on your blocked list" % sym)
 
     budget = float(budget if budget is not None else (c.get("budget") or 0))
-    if budget <= 0:
+    if not math.isfinite(budget) or budget <= 0:
         raise SizeError("no budget: pass --budget or set \"budget\" in trader/config.json")
     buf_pct = float(c.get("cash_buffer_pct") or 0)
     if not 0 <= buf_pct < 100:
@@ -340,19 +345,19 @@ def size_trade(plan, cfg, budget=None, limit=None, price=None, cash=None, today=
 
     if limit is not None:
         ref, ref_from = round_cent(limit), "limit"
-    elif price is not None and round_cent(price) > round_cent(entry_plan):
+    elif price is not None and sign * (round_cent(price) - round_cent(entry_plan)) > 0:
         ref, ref_from = round_cent(price), "price"
     else:
         ref, ref_from = round_cent(entry_plan), "plan"
     stop, target = round_cent(stop), round_cent(target)
-    if stop >= ref:
+    if sign * (ref - stop) <= 0:
         raise SizeError("the stop %s is not below the entry %s; a long trade needs its stop underneath"
                         % (_price(stop), _price(ref)))
-    if target <= ref:
+    if sign * (target - ref) <= 0:
         raise SizeError("the target %s is not above the entry %s: the move has already happened. "
                         "Skip it or make a new plan with trader-exit" % (_price(target), _price(ref)))
-    risk_c = int(round((ref - stop) * 100))
-    reward_c = int(round((target - ref) * 100))
+    risk_c = int(round(sign * (ref - stop) * 100))
+    reward_c = int(round(sign * (target - ref) * 100))
     risk = risk_c / 100.0
 
     cash_buffer = round(budget * buf_pct / 100.0, 2)
@@ -403,7 +408,7 @@ def size_trade(plan, cfg, budget=None, limit=None, price=None, cash=None, today=
         refusal = ("%d share%s of %s is %s, under your %s minimum order. No order."
                    % (qty, "" if qty == 1 else "s", sym, money(cost), money(c["min_order_usd"])))
     return {
-        "symbol": sym, "side": "buy", "setup": plan.get("setup", ""), "date": plan.get("date"),
+        "symbol": sym, "side": side, "setup": plan.get("setup", ""), "date": plan.get("date"),
         "entry_time": plan.get("entry_time", ""), "entry_plan": round_cent(entry_plan),
         "entry": ref, "entry_from": ref_from, "stop": stop, "target": target,
         "risk_per_share": risk, "reward_risk": round(reward_c / float(risk_c), 2),
@@ -419,7 +424,7 @@ def bracket_order(s):
     """The one proposed order, Alpaca place_stock_order fields (strings) plus why and plan."""
     if s["refusal"] or s["qty"] <= 0:
         return None
-    o = {"symbol": s["symbol"], "side": "buy", "qty": str(int(s["qty"])), "type": s["order_type"],
+    o = {"symbol": s["symbol"], "side": s["side"], "qty": str(int(s["qty"])), "type": s["order_type"],
          "time_in_force": "day"}
     if s["order_type"] == "limit":
         o["limit_price"] = _price(s["entry"])
@@ -444,14 +449,14 @@ def bracket_order(s):
 def plan_report(s, order, notes=()):
     lines = []
     setup = SETUP_WORDS.get(s["setup"], s["setup"] or "setup")
-    lines.append("%s buy, %s, entry %s%s" % (s["symbol"], setup, _price(s["entry_plan"]),
+    lines.append("%s %s, %s, entry %s%s" % (s["symbol"], s["side"], setup, _price(s["entry_plan"]),
                                             (" at " + s["entry_time"]) if s["entry_time"] else ""))
     lines.append("Stop %s%s. Target %s%s." % (_price(s["stop"]), (": " + s["stop_label"]) if s["stop_label"] else "",
                                              _price(s["target"]),
                                              (": " + s["target_label"]) if s["target_label"] else ""))
     for n in notes:
         lines.append(n)
-    src = {"plan": "the plan's entry", "price": "the latest price, above the plan's entry",
+    src = {"plan": "the plan's entry", "price": "the latest price, adverse to the plan's entry",
            "limit": "your limit price"}[s["entry_from"]]
     lines.append("Sized at %s (%s). Risk %s a share (entry %s minus stop %s). Reward:risk %.2f."
                  % (_price(s["entry"]), src, _price(s["risk_per_share"]), _price(s["entry"]), _price(s["stop"]),
@@ -469,12 +474,12 @@ def plan_report(s, order, notes=()):
     lines.append("Size: %d shares of %s = %s at %s. Max loss at the stop: %d x %s = %s."
                  % (s["qty"], s["symbol"], money(s["cost"]), _price(s["entry"]), s["qty"],
                     _price(s["risk_per_share"]), money(s["max_loss"])))
-    lines.append("A stop is an order, not a promise: in a fast market it can fill below %s." % _price(s["stop"]))
+    lines.append("A stop is an order, not a promise: in a fast market it can fill past %s." % _price(s["stop"]))
     lines.append("")
     lines.append("Proposed bracket order (place_stock_order arguments, nothing has been placed):")
     how = "limit %s" % order["limit_price"] if order["type"] == "limit" else "market"
-    lines.append("  buy %s %s, %s, day, take-profit %s, stop-loss %s"
-                 % (order["qty"], order["symbol"], how, order["take_profit_limit_price"],
+    lines.append("  %s %s %s, %s, day, take-profit %s, stop-loss %s"
+                 % (order["side"], order["qty"], order["symbol"], how, order["take_profit_limit_price"],
                     order["stop_loss_stop_price"]))
     if s["flat_by"]:
         lines.append("Flat by %s New York: anything still open then gets closed (trader-alerts rings, "
@@ -605,7 +610,7 @@ def whole_shares(dollars, prices, order, cap, cash):
 def size(rows, cfg, budget=None, prices=None, whole=None, cents=False, top=None):
     """Weights mode. Pure function: weights + rules -> the full sizing result (a dict)."""
     budget = float(budget if budget is not None else (cfg.get("budget") or 0))
-    if budget <= 0:
+    if not math.isfinite(budget) or budget <= 0:
         raise SizeError("no budget: pass --budget or set \"budget\" in trader/config.json")
     buf_pct = float(cfg.get("cash_buffer_pct", 10))
     cap_pct = float(cfg.get("max_position_pct", 25))
@@ -792,9 +797,10 @@ def run_plan(a, cfg):
         p, t, fresh = fresh_price(pdoc, sym, now)
         if p is not None and fresh:
             price = p
-            if round_cent(p) > round_cent(_f(plan.get("entry")) or 0):
-                notes.append("%s last %s (as of %s New York) is above the plan's entry %s, so the risk "
+            if (1 if plan.get("side") in ("buy", "long", None) else -1) * (round_cent(p) - round_cent(_f(plan.get("entry")) or 0)) > 0:
+                notes.append("%s last %s (as of %s New York) is %s the plan's entry %s, so the risk "
                              "is bigger: sized at %s." % (sym, _price(p), to_eastern(t).strftime("%H:%M"),
+                                                          "above" if plan.get("side") in ("buy", "long", None) else "below",
                                                           _price(plan.get("entry")), _price(p)))
         elif p is not None:
             notes.append("%s in %s is %s: not used (older than %d minutes). Sized at the plan's entry."

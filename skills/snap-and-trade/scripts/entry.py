@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Entry Timer for trader-entry: watches a setup bar by bar and says the
-moment to get in. Standard library only. Long side only. It never places an order.
+moment to get in. Standard library only. Long and short analysis. It never places an order.
 
     python3 entry.py check TSLA                          # opening-range breakout, 5-minute bars
     python3 entry.py check TSLA --now "2026-10-19 10:15" --offline TSLA.json
@@ -9,7 +9,7 @@ moment to get in. Standard library only. Long side only. It never places an orde
     python3 entry.py watch TSLA --every 30 --until 15:30  # one line per closed bar
     python3 entry.py watchlist                            # every hit in trader/watchlist.json
 
-Setups (v2 plans longs only):
+Setups (long breakouts / short breakdowns):
   orb    opening-range breakout. The range is the high and low of the first
          --or-minutes (default 15: the 9:30, 9:35 and 9:40 five-minute bars).
          It triggers on the first COMPLETED bar after the range that CLOSES
@@ -406,8 +406,13 @@ def early_cutoff(day, t, close_dt):
 
 
 def evaluate(chart, now_utc, setup="orb", or_minutes=15, interval="5m", level=None,
-             min_volume_x=None, cfg=None):
+             min_volume_x=None, cfg=None, side="buy"):
     """Pure function: the setup's status at now_utc from one session's bars."""
+    side = {"long": "buy", "short": "sell"}.get(side, side)
+    if side not in ("buy", "sell"):
+        raise EntryError("side must be buy or sell")
+    sign = 1 if side == "buy" else -1
+    direction = "above" if sign == 1 else "below"
     cfg = cfg or dict(DEFAULTS)
     if interval not in INTERVALS:
         raise EntryError("--interval is 5m or 1m")
@@ -421,7 +426,7 @@ def evaluate(chart, now_utc, setup="orb", or_minutes=15, interval="5m", level=No
     n_or = or_minutes * 60 // step
     local = to_eastern(now_utc)
     day = local.date()
-    res = {"symbol": chart["symbol"], "setup": setup, "side": "buy", "date": day.isoformat(),
+    res = {"symbol": chart["symbol"], "setup": setup, "side": side, "date": day.isoformat(),
            "interval": interval, "or_minutes": or_minutes, "now": local.strftime("%Y-%m-%d %H:%M:%S"), "status": "waiting",
            "phase": "", "reason": "", "opening_range": None, "level": None, "trigger": None,
            "last": None, "forming": None, "min_volume_x": min_volume_x,
@@ -493,7 +498,7 @@ def evaluate(chart, now_utc, setup="orb", or_minutes=15, interval="5m", level=No
         if not or_bars:
             res.update(status="no-data", phase="open", reason="Yahoo sent no bars for the opening range")
             return res
-        lvl = max(b["h"] for b in or_bars)
+        lvl = max(b["h"] for b in or_bars) if sign == 1 else min(b["l"] for b in or_bars)
     else:
         lvl = float(level)
     res["level"] = r2(lvl)
@@ -503,7 +508,7 @@ def evaluate(chart, now_utc, setup="orb", or_minutes=15, interval="5m", level=No
     for b in bars:
         if b["slot"] < first_slot or b["end"] < before or b["end"] > cutoff:
             continue
-        if b["c"] > lvl:
+        if sign * (b["c"] - lvl) > 0:
             vx = (b["v"] / avg_vol) if avg_vol else None
             if min_volume_x and (vx is None or vx < min_volume_x):
                 thin.append(b)
@@ -518,7 +523,7 @@ def evaluate(chart, now_utc, setup="orb", or_minutes=15, interval="5m", level=No
     if trig:
         vx = (trig["v"] / avg_vol) if avg_vol else None
         res.update(status="triggered", phase="open" if local < close_dt else "after-close",
-                   reason="the %s bar closed above %s" % (short(trig["et"]), "the range high" if setup == "orb" else "the level"))
+                   reason="the %s bar closed %s %s" % (short(trig["et"]), direction, ("the range high" if sign == 1 else "the range low") if setup == "orb" else "the level"))
         res["trigger"] = {"time": ampm(trig["end"]), "close_time": hm(trig["end"]), "bar_start": hm(trig["et"]),
                           "bar_index": trig["slot"], "price": r2(trig["c"]), "close": trig["c"],
                           "volume": trig["v"], "volume_x": r2(vx), "pct_over": r2(100.0 * (trig["c"] / lvl - 1))}
@@ -530,24 +535,24 @@ def evaluate(chart, now_utc, setup="orb", or_minutes=15, interval="5m", level=No
     if not bars:
         res.update(status="no-data", phase="open", reason="Yahoo sent no bars for %s yet" % day.isoformat())
         return res
-    what = "close above the range high $%.2f" % lvl if setup == "orb" else "close above $%.2f" % lvl
+    what = "close %s $%.2f" % (direction, lvl)
     if local >= cutoff and not (pending and pending["end"] <= cutoff):
         res.update(status="expired", phase="after-close" if local >= close_dt else "after-cutoff",
                    reason="no %s by %s, the last time for a new entry%s" % (
                        what, short(cutoff), " (1:00 p.m. early close today)" if early else ""))
         return res
     res["phase"] = "open"
-    if last["c"] > lvl and last in thin:
-        res["reason"] = "the %s bar closed above at $%.2f but on %.2fx the range's volume, under your %.2fx" % (
+    if sign * (last["c"] - lvl) > 0 and last in thin:
+        res["reason"] = "the %s bar closed beyond the level at $%.2f but on %.2fx the range's volume, under your %.2fx" % (
             short(last["et"]), last["c"], last["v"] / avg_vol if avg_vol else 0, min_volume_x)
-    elif last["c"] > lvl and last["end"] < before:
+    elif sign * (last["c"] - lvl) > 0 and last["end"] < before:
         res["reason"] = "the %s bar closed above at $%.2f, but no entries before %s (config)" % (
             short(last["et"]), last["c"], short(before))
     else:
         gap = lvl - last["c"]
         res["reason"] = "last close $%.2f (%s bar), $%.2f %s %s (%+.2f%%)" % (
             last["c"], short(last["et"]), abs(gap), "under" if gap >= 0 else "over",
-            "the range high $%.2f" % lvl if setup == "orb" else "the level $%.2f" % lvl,
+            ("the range high $%.2f" if sign == 1 else "the range low $%.2f") % lvl if setup == "orb" else "the level $%.2f" % lvl,
             100.0 * (last["c"] / lvl - 1))
     return res
 
@@ -561,7 +566,7 @@ def entry_doc(res, now_utc):
     """trader/entry.json, the contract shape (plus a plain-words reason)."""
     t = res.get("trigger") or {}
     orr = res.get("opening_range")
-    return {"created_by": "trader-entry", "symbol": res["symbol"], "setup": res["setup"], "side": "buy",
+    return {"created_by": "trader-entry", "symbol": res["symbol"], "setup": res["setup"], "side": res["side"],
             "date": res["date"], "status": res["status"], "time": t.get("time"), "bar_start": t.get("bar_start"),
             "bar_index": t.get("bar_index"), "price": t.get("price"), "level": res.get("level"),
             "interval": res["interval"],
@@ -588,7 +593,7 @@ SHORT = {"pre-open": "not open", "forming": "forming", "closed": "closed"}
 def setup_name(res):
     if res["setup"] == "orb":
         return "opening-range breakout (%d-minute range)" % res["or_minutes"]
-    return "close above $%.2f" % res["level"] if res["level"] is not None else "close above a level"
+    return "close %s %s" % ("above" if res["side"] == "buy" else "below", "$%.2f" % res["level"] if res["level"] is not None else "a level")
 
 
 def describe(res):
@@ -625,7 +630,7 @@ def describe(res):
             out.append("Nothing was placed.")
         else:
             out.append("This is the moment to get in, if you take the trade. Nothing was placed.")
-        out.append("Next: set the stop and target BEFORE you buy: /trader-exit "
+        out.append("Next: set the stop and target BEFORE entry: /trader-exit "
                    "(exit.py plan --from trader/entry.json).")
     else:
         out.append("%s  %s." % (label, res["reason"]))
@@ -660,12 +665,12 @@ def bar_line(b, res):
         if b["slot"] == n_or - 1:
             note = "opening range set: high $%.2f, low $%.2f" % (orr["high"], orr["low"])
     elif t and t["bar_index"] == b["slot"]:
-        note = "TRIGGERED: closed above $%.2f (%+.2f%%). Get in now if you take it: %s, $%.2f" % (
+        note = "TRIGGERED: closed beyond $%.2f (%+.2f%%). Get in now if you take it: %s, $%.2f" % (
             lvl, t["pct_over"], t["time"], t["price"])
     elif lvl is None:
         note = ""
-    elif b["c"] > lvl:
-        note = "above $%.2f" % lvl
+    elif (b["c"] - lvl) * (1 if res["side"] == "buy" else -1) > 0:
+        note = "beyond $%.2f" % lvl
         if res["setup"] == "level" or b["slot"] >= n_or:
             avg = orr.get("avg_volume")
             if res.get("min_volume_x") and avg:
@@ -782,8 +787,6 @@ def watch_loop(provider, clock, sleep, emit, opts, every=30, until=None, max_err
 # ---------------------------------------------------------------- commands
 
 def _opts(a, cfg):
-    if a.side in ("sell", "short"):
-        raise EntryError("v2 plans longs only: no short entries. Watch for a buy (--side buy) instead.")
     if a.setup == "orb" and a.level is not None:
         raise EntryError("--level is for --setup level (an orb's level is its range high)")
     if a.min_volume_x is not None and a.min_volume_x <= 0:
@@ -791,7 +794,7 @@ def _opts(a, cfg):
     if a.level is not None and a.level <= 0:
         raise EntryError("--level must be a price above 0")
     return {"setup": a.setup, "or_minutes": a.or_minutes, "interval": a.interval, "level": a.level,
-            "min_volume_x": a.min_volume_x, "cfg": cfg}
+            "min_volume_x": a.min_volume_x, "cfg": cfg, "side": a.side}
 
 
 def _load(a, sym, now):
@@ -921,7 +924,7 @@ def main(argv=None):
         p.add_argument("--interval", choices=["5m", "1m"], default="5m")
         p.add_argument("--level", type=float, help="the price to close above (--setup level)")
         p.add_argument("--min-volume-x", type=float, help="trigger bar volume vs the range bars' average")
-        p.add_argument("--side", default="buy", choices=["buy", "long", "sell", "short"], help="v2: buy only")
+        p.add_argument("--side", default="buy", choices=["buy", "long", "sell", "short"], help="buy/long breakout or sell/short breakdown")
         p.add_argument("--now", help='pretend it is this New York time, e.g. "2026-10-19 10:15"')
         p.add_argument("--offline", metavar="PATH", help="saved Yahoo chart JSON (.json/.json.gz) or a folder")
         p.add_argument("--config", default="trader/config.json")

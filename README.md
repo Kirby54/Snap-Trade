@@ -1,32 +1,42 @@
 # 📸 Snap & Trade
 
 [![tests](https://github.com/Kirby54/Snap-Trade/actions/workflows/tests.yml/badge.svg)](https://github.com/Kirby54/Snap-Trade/actions/workflows/tests.yml)
-![version](https://img.shields.io/badge/version-2.2.0-blue)
+![version](https://img.shields.io/badge/version-2.3.0-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![python](https://img.shields.io/badge/python-3.10%2B-blue)
 
-An **all-in-one trading assistant** by [Kirby54](https://github.com/Kirby54).
-Send a **screenshot of a chart**—stocks, crypto, forex, indices or futures,
-on any timeframe—from TradingView, MT4/MT5, FX Replay, Binance or another
-platform. Get a step-by-step analysis followed by a clear trade plan.
+A chart-review and trade-journaling skill by [Kirby54](https://github.com/Kirby54).
+Send an execution chart **and a higher timeframe of the same instrument**
+(e.g. 5m + 1h). Get a short **LONG, SHORT or NO TRADE** card, with checked
+entry/stop/targets, reward-to-risk and optional position sizing.
 
-### Example: conditional SHORT · NDX · 5 min
+![Illustrative Snap & Trade workflow using synthetic chart data](assets/demo.gif)
 
-**Confidence:** low (2/5) · **Reward-to-risk:** 1.8 / 2.4
+*Illustrative animation drawn from synthetic inputs, not a recorded model
+session, real market data, or evidence of trading performance.*
 
-| | Level | Details |
-| --- | --- | --- |
-| 🟢 **Entry** | **28,295** | Conditional limit entry after a closed rejection candle |
-| 🔴 **Stop loss** | **28,375** | Above the latest swing high, with a buffer |
-| 🎯 **TP1** | **28,150** | 1.8R |
-| 🎯 **TP2** | **28,100** | 2.4R |
-| ⛔ **Invalidation** | **28,375** | A 5-minute candle closes above this level |
+## What changed in v2.3
 
-Illustrative levels only. Until the trigger is confirmed, the decision is
-**NO TRADE**. An index chart's levels are not directly executable on a
-different futures or CFD instrument.
+- **Available-evidence score:** 3/3 when only three criteria are available,
+  not 3/5. Absent indicators or unavailable index volume are excluded; weak
+  displayed signals still count as negative. The score is not a win probability.
+- **Structural stop + candle floor:** screenshot plans must have at least
+  1.5 times the average high-low range of recent closed candles between entry
+  and stop. If the structure and net reward/risk cannot support it, NO TRADE.
+- **Two-timeframe context:** request the higher chart when missing; do not
+  guess trend from a gap or silently hide missing context in a low score.
+- **Price-source checks:** prefer the latest-price axis label; cursor OHLC
+  and a quote panel may show different prices. Flag discrepancies.
+- **Closed session:** a conditional opening plan with explicit gap-cancellation
+  bounds, expiry and a fresh-chart check before any entry.
+- **Short output by default:** ask “explain” for the detailed analysis.
+- **Both directions:** entry, exit and simulation support long/short analysis;
+  short sizing requires explicit permission in user configuration.
 
-## ⚡ Installation
+The candle floor and confidence labels are provisional heuristics, not
+statistically calibrated risk models. They need evaluation on held-out data.
+
+## Installation
 
 **Claude Code plugin:**
 
@@ -35,126 +45,140 @@ different futures or CFD instrument.
 /plugin install snap-and-trade@snap-and-trade
 ```
 
-**Manual installation:** copy `skills/snap-and-trade` to
-`~/.claude/skills/` (Windows: `%USERPROFILE%\.claude\skills\`).
+**Manual:** copy `skills/snap-and-trade` to `~/.claude/skills/`
+(Windows: `%USERPROFILE%\.claude\skills\`).
 
-**Claude.ai:** zip the `skills/snap-and-trade` folder and import it through
-*Settings > Capabilities > Skills*.
+**Claude.ai:** download the installable skill ZIP from
+[Releases](https://github.com/Kirby54/Snap-Trade/releases), or zip the
+`skills/snap-and-trade` folder, and import it through
+*Settings > Capabilities > Skills*. Hosted-product access and feature
+availability depend on your account.
 
-Requires Python 3.10+. The scripts use the standard library. Chart analysis
-does not require a market-data API key; broker integrations require their
-own account and credentials.
+Python 3.10+; runtime and tests use the standard library. Analysis does not
+need a market-data API key. Optional broker integrations require a separate
+account, credentials and explicit user approval. Releases include a skill
+ZIP with license notices and a SHA-256 checksum.
 
-## 🧭 Features
+## Usage
 
-**Screenshot mode:** chart reading → market structure → key levels → setup
-→ confluence score out of 5 → numerical checks (minimum 1.5 reward-to-risk
-and stop placement) → trade plan → position sizing when account capital
-is supplied. The decision is **LONG, SHORT or NO TRADE**.
+- Attach 5m + 1h images: “Long or short? Short answer.”
+- “The market is closed; prepare an opening plan.”
+- “Explain the setup and the checks.”
+- “Log this trade”, “Trade #4 hit TP1”, “Stats by setup.”
 
-**Module mode:** the 11 tools from
+If the latest price, timestamps, context or confirmation are missing, expect
+**NO TRADE** plus one concrete request or condition to reassess.
+
+### Example card — synthetic inputs
+
+**NO TRADE NOW — conditional SHORT · CAC40-DEMO · 5m / 1h**
+
+Score **2/3 available**; closed trigger still missing. Volume/indicator
+unavailable. Latest price **8372** from axis, not cursor OHLC **8394** or
+quote-panel **8361**.
+
+| Level | Price | Condition |
+| --- | --- | --- |
+| Entry | 8372 | Only after the specified closed trigger and refreshed checks |
+| Stop | 8390 | Structural invalidation; distance 18 vs candle floor 15 |
+| TP1 / TP2 | 8340 / 8320 | Gross R:R 1.78 / 2.89; costs not provided |
+
+An index chart's prices are not directly executable on a future/CFD.
+When closed: opening at/beyond stop or TP1 cancels the scenario. Between
+those bounds, wait for fresh confirmation and rerun calculations.
+
+## Modules and market coverage
+
+Includes modules adapted from
 [day-trader-skill](https://github.com/Jakeschincariol/day-trader-skill),
-available through one skill:
+with MIT attribution retained.
 
 | Module | Purpose |
 | --- | --- |
-| 🔎 scanner | Scan US stocks for breakouts, flags, oversold setups and opening ranges |
-| 📰 news | Find new Yahoo headlines and SEC 8-K filings |
-| 📊 analyst | Read SEC EDGAR quarterly revenue, margins and earnings per share |
-| ⏱️ entry | Identify a candle closing above the opening range |
-| 🚪 exit | Define the stop and target before entry |
-| 🎲 timemachine | Simulate 10,000 sessions and inspect historical setup occurrences |
-| 💰 budget | Size a position within account limits |
-| 🛡️ risk | Return PASS or BLOCK against the configured risk rules |
-| 🏦 broker | Prepare an Alpaca order ticket; paper trading by default, explicit approval required |
-| 🔔 alerts | Track price, stop, target and market-opening alerts |
-| 🏛️ pelosi | Read publicly disclosed congressional trades |
+| scanner | US-stock candidates: breakouts, flags, oversold setups, opening ranges |
+| news / analyst | Yahoo headlines, SEC filings and quarterly financials |
+| entry / exit | Closed breakout/breakdown trigger, structural stop and target |
+| timemachine | Resampled scenarios and historical setup replay; not calibrated odds |
+| budget / risk | Position size and PASS/BLOCK against user-configured limits |
+| broker / alerts | Approved order tickets and price/session alerts |
+| pelosi | Public congressional transaction disclosures |
+| journal | Signal/outcome CSV and descriptive R statistics |
 
-**Journal mode:** record signals and outcomes, then review win rate, average R,
-profit factor and the longest losing streak. Group results by confidence,
-setup or asset. Follow the
-[replay testing protocol](skills/snap-and-trade/references/backtest.md)
-to reduce selection and hindsight bias.
+| Mode | Markets | Directions and limits |
+| --- | --- | --- |
+| Screenshot + plan + journal | Readable stocks, crypto, forex, indices, futures charts | Long/short; exact linear instrument specifications required for sizing |
+| news, analyst, scanner, pelosi | US stocks / ETFs | Scanner remains long-biased |
+| entry, exit, timemachine | US stocks / ETFs | Buy/long and sell/short analysis |
+| budget plan mode | US stocks / ETFs | Long by default; short only with explicit `allow_short: true` |
+| budget weights mode | US stocks / ETFs | Buy only |
+| risk | US stocks / ETFs | Long/short analysis with configured caps and conservative short collateral reserve |
+| broker, alerts | US stocks / ETFs | Long entries and exits; broker helper blocks short entries. Default paper/no-margin; exact-order approval required |
 
-### Market coverage
+Short calculations do not establish borrow availability, margin/collateral,
+fees or broker eligibility. No screenshot, score or test places an order.
 
-| Mode or modules | US stocks / ETFs | Crypto, forex, indices, futures | Long | Short |
-| --- | --- | --- | --- | --- |
-| Screenshot + journal | ✅ | ✅ | ✅ | ✅ |
-| news, analyst, scanner, pelosi | ✅ | ❌ | — | — |
-| entry, exit, timemachine, budget | ✅ | ❌ | ✅ | ❌ |
-| risk, broker (Alpaca), alerts | ✅ | ❌ | ✅ | Exits only |
-
-Screenshot support does not imply that broker and data modules support
-every market. Confirm the exact instrument, contract specifications,
-account currency and broker constraints before using a calculated size.
-
-## 💬 Usage
-
-- Send a screenshot: “Long or short?”, “Give me SL and TP”, or
-  “Analyze this chart; my account is $2,000 and I risk 1%.”
-- Call a module: “Scan the market”, “Any news on TSLA?”,
-  “Apple earnings”, or “What did Pelosi disclose?”
-- Use the journal: “Log this trade”, “Trade #4 hit TP1”, or
-  “Show my results by confidence.”
-
-## 📈 Results
-
-No verified profitability results are published yet. Use the
-[testing protocol](skills/snap-and-trade/references/backtest.md)
-and publish complete results, including losses and unfilled signals.
-An initial sample of 30 closed trades is exploratory; it does not establish
-a statistical trading edge.
-
-## 🧪 Tests
+## Numerical checks
 
 ```bash
-python -m unittest discover -s tests
+python skills/snap-and-trade/scripts/plan.py --side short --entry 8372 --sl 8390 --tp 8340 --avg-candle 10 --json
 ```
 
-The suite runs on every push and pull request across Linux, Windows and
-macOS with Python 3.10 and 3.13. The badge shows the actual workflow status.
-See [CONTRIBUTING.md](CONTRIBUTING.md) for offline checks and conventions.
+Supports conversion (`--fx-rate`), estimated costs (`--cost-per-unit`),
+quantity steps/minima and a notional cap. Rounds quantity down, refuses
+invalid numbers, orders targets and requires explicit override above 2%
+risk of supplied capital. Legacy CLI use without `--avg-candle` remains
+possible; screenshot mode requires that volatility check.
+
+[Units, examples and limits](skills/snap-and-trade/references/dimensionnement.md).
+`assess.py` checks **recorded observations**, not pixels. It cannot establish
+whether the model read an image correctly.
+
+## Evaluation and evidence
+
+**No profitable trading edge or real-image accuracy is demonstrated.**
+The repository includes five SHA-256-pinned **synthetic development cases**
+for price conflicts, missing context, closed session, tight stops and an
+unreadable price. They are not a held-out benchmark or real backtest.
+
+```bash
+python tools/benchmark.py --check-fixtures
+python tools/benchmark.py --answers evaluation/answers.json --output evaluation/report.json
+```
+
+Record actual model answers before scoring. The evaluator reports price,
+decision and denominator matches, unsafe actions on abstention cases and
+missing answers. No model result is bundled or fabricated.
+
+Next evidence: independently labelled real screenshots, repeated runs under
+fixed model/prompt versions, held-out market periods and replay/paper outcomes
+including costs and every loss. An initial 30-trade sample is exploratory.
+See [visual evaluation](skills/snap-and-trade/references/evaluation.md) and
+[replay protocol](skills/snap-and-trade/references/backtest.md).
+
+## Tests and packaging
 
 ```bash
 python tools/validate_repo.py
+python tools/benchmark.py --check-fixtures
+python -m unittest discover -s tests
+python tools/package_skill.py
 ```
 
-### Risk calculations (v2.2)
+CI runs Linux, Windows and macOS × Python 3.10/3.13. Tests include a
+synthetic short entry→exit→sizing→risk chain and extraction of an installable
+ZIP into a clean directory. They do not validate hosted-model installation,
+live providers, broker execution or profitability.
 
-`plan.py` rejects non-finite numbers, invalid budgets and unordered targets.
-It supports currency conversion (`--fx-rate`), estimated round-trip costs
-per unit (`--cost-per-unit`), quantity steps (`--qty-step`), minimum size
-(`--min-qty`) and a notional cap (`--max-notional`). Quantities are rounded
-down. Risk above 2% requires an explicit user request and `--allow-high-risk`.
+The release job publishes only after all six matrix jobs pass on `main`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [CHANGELOG](CHANGELOG.md).
+Pillow is needed only to rebuild the illustrative GIF and visual fixtures,
+not for runtime, packaging or tests.
 
-See [units, examples and limitations](skills/snap-and-trade/references/dimensionnement.md).
-The journal accepts `--cost-r` to subtract realized costs from R statistics;
-zero means gross results. Existing v2.1 CSV files remain compatible. Journal
-access is exclusive and writes use atomic replacement.
+## Disclaimer and license
 
-### What is checked, and what still needs measurement
+For technical analysis and education, **not investment advice**. Screenshots
+show past prices. A stop is not a guaranteed execution price or maximum loss.
+Use replay/paper testing before any independently authorized real use.
 
-| Area | Status |
-| --- | --- |
-| Calculations, input validation and module behavior | Automated fixture-based tests |
-| Repository metadata, manifests and local references | Automated offline checks |
-| Model interpretation of chart screenshots | Requires a fixed image set and archived responses |
-| Profitability after costs and stability out of sample | Not demonstrated |
-| Live provider and broker integration | Depends on services and permissions; fixture tests are insufficient |
-
-A green CI run does not validate a trading strategy. Contributing does not
-require placing orders or testing with real money.
-
-## ⚠️ Disclaimer
-
-For technical analysis and education, **not investment advice**.
-A screenshot shows past price action; a trade plan is an interpretation,
-not a prediction. Stops do not guarantee an execution price or a maximum
-loss. Test in a demo or paper account first.
-
-## License
-
-MIT. The day-trader modules are © 2026 Jake Schincariol and retain their
-MIT attribution; see [LICENSE](LICENSE).
-Release history: [CHANGELOG](CHANGELOG.md).
+MIT. Adapted day-trader modules are © 2026 Jake Schincariol; see
+[LICENSE](LICENSE). Project maintained by [Kirby54](https://github.com/Kirby54).

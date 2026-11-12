@@ -1,0 +1,32 @@
+{
+  "asset": "CAC40-DEMO",
+  "timeframe": "5m",
+  "side": "short",
+  "higher_timeframe": {
+    "asset": "CAC40-DEMO",
+    "timeframe": "1h",
+    "trend": "down",
+    "fresh": true,
+    "observed_at": "2026-11-12T15:00:00+01:00"
+  },
+  "criteria": {
+    "trend": true,
+    "level": true,
+    "candle": true,
+    "momentum": null,
+    "volume": null
+  },
+  "prices": {
+    "axis": 8372,
+    "header": 8394,
+    "panel": 8361
+  },
+  "observed_at": "2026-11-12T15:00:00+01:00",
+  "fresh": true,
+  "session": "open",
+  "entry": 8372,
+  "sl": 8390,
+  "tp1": 8340,
+  "avg_candle": 10,
+  "plan_valid": true
+}

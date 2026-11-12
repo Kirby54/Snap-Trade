@@ -335,6 +335,8 @@ def status_of(order, risk, state, today):
         return False, "NOT READY: " + why, None
     if rv.get("verdict") != "PASS":
         return False, "BLOCKED by trader-risk: " + "; ".join(rv.get("reasons", [])), rv
+    if order.get("side") == "sell" and rv.get("kind") == "entry":
+        return False, "NOT READY: short-entry execution is not supported by this broker helper; analysis and risk checks only", rv
     rec = latest(state, fp, today)
     if rec:
         st = rec.get("status")
