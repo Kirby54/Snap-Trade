@@ -71,7 +71,8 @@ Read `references/lecture-chart.md`, `references/setups.md` and
    structure AND the candle floor. Do not present a rejected variant as valid.
    If no defensible entry, stop or target is observable, skip `plan.py`, do
    not invent levels to make a script run. Record missing levels as `null`
-   and `plan_valid: false`; the observation check will return NO TRADE.
+   and `plan_valid: false`; use null identity/timeframe/direction for unreadable
+   data rather than guessing. The observation check returns NO TRADE.
 8. **Run `assess.py`** on a local JSON record of the observations, using the
    schema/example in `references/observations.example.json`. Populate every
    field from the images/user and actual `plan.py` result. It gates context,

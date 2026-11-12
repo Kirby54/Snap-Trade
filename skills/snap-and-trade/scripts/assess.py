@@ -32,9 +32,11 @@ def evaluate(doc):
         raise ValueError('observations must be an object')
     reasons, warnings = [], []
     side = doc.get('side')
-    if side not in ('long', 'short'):
-        raise ValueError('side must be long or short')
-    sign = 1 if side == 'long' else -1
+    if side not in ('long', 'short', 'none', None):
+        raise ValueError('side must be long, short or none')
+    if side in ('none', None):
+        reasons.append('no defensible directional setup')
+    sign = (1 if side == 'long' else -1) if side in ('long', 'short') else None
     criteria = doc.get('criteria', {})
     if not isinstance(criteria, dict) or set(criteria) - set(CRITERIA):
         raise ValueError('unknown confluence criterion')
@@ -60,10 +62,12 @@ def evaluate(doc):
         label = 'high'
     if criteria.get('trend') is False:
         label = 'low'
-    low_tf = timeframe(doc.get('timeframe'))
+    low_tf = timeframe(doc['timeframe']) if doc.get('timeframe') is not None else None
+    if low_tf is None:
+        reasons.append('execution timeframe unreadable; request clarification')
     asset = str(doc.get('asset') or '').strip()
     if not asset:
-        raise ValueError('asset required')
+        reasons.append('instrument identity unreadable; request clarification')
     htf = doc.get('higher_timeframe')
     higher_observed = None
     if htf is None:
@@ -72,7 +76,7 @@ def evaluate(doc):
     elif not isinstance(htf, dict):
         raise ValueError('higher_timeframe must be an object')
     else:
-        if htf.get('asset') != asset or timeframe(htf.get('timeframe')) <= low_tf:
+        if not asset or low_tf is None or htf.get('asset') != asset or htf.get('timeframe') is None or timeframe(htf['timeframe']) <= low_tf:
             reasons.append('higher-timeframe image is a different instrument or not a higher timeframe')
             label = 'low'
         if htf.get('fresh') is not True:
@@ -120,7 +124,7 @@ def evaluate(doc):
     except (TypeError, ValueError):
         raise ValueError('observed_at must be an ISO datetime with timezone')
     if htf and higher_observed is not None and observed is not None and observed.utcoffset() is not None:
-        if abs((observed - higher_observed).total_seconds()) > timeframe(htf['timeframe']) * 60:
+        if htf.get('timeframe') is None or abs((observed - higher_observed).total_seconds()) > timeframe(htf['timeframe']) * 60:
             reasons.append('capture timestamps do not overlap the context window')
             label = 'low'
     session = doc.get('session', 'unknown')
@@ -137,8 +141,8 @@ def evaluate(doc):
         if value is None:
             reasons.append(f'no defensible {key} level; do not invent one')
     entry, sl, tp1 = (levels[k] for k in ('entry', 'sl', 'tp1'))
-    risk = (entry - sl) * sign if entry is not None and sl is not None else None
-    reward = (tp1 - entry) * sign if entry is not None and tp1 is not None else None
+    risk = (entry - sl) * sign if sign is not None and entry is not None and sl is not None else None
+    reward = (tp1 - entry) * sign if sign is not None and entry is not None and tp1 is not None else None
     if (risk is not None and risk <= 0) or (reward is not None and reward <= 0):
         reasons.append('invalid stop or target direction')
     avg = doc.get('avg_candle')
@@ -156,7 +160,7 @@ def evaluate(doc):
                    'between_bounds': 'wait for a closed trigger; refresh both images and rerun numerical checks',
                    'valid_for': 'next confirmed session only; reconfirm calendar, instrument and timezone'}
     return {'signal': 'NO TRADE' if reasons else side.upper(),
-            'candidate_side': side.upper(), 'mode': 'opening-plan' if session == 'closed' else 'review',
+            'candidate_side': side.upper() if side in ('long', 'short') else 'UNDETERMINED', 'mode': 'opening-plan' if session == 'closed' else 'review',
             'score': f'{points}/{total}', 'points': points, 'available': total,
             'unavailable': [k for k in CRITERIA if k not in available],
             'confidence': label, 'latest_price': latest,

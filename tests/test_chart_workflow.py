@@ -82,6 +82,12 @@ class ChartObservations(unittest.TestCase):
         d['session'] = 'closed'
         self.assertEqual(assess.evaluate(d)['mode'], 'opening-plan')
 
+    def test_unknown_identity_timeframe_and_direction_are_early_abstentions(self):
+        d = observations();d.update(asset=None,timeframe=None,side=None,entry=None,sl=None,tp1=None,plan_valid=False)
+        r = assess.evaluate(d)
+        self.assertEqual(r['signal'], 'NO TRADE')
+        self.assertEqual(r['candidate_side'], 'UNDETERMINED')
+
     def test_malformed_observations_fail_cleanly(self):
         for value in ('true', 1, [], {}):
             d = observations(); d['criteria']['volume'] = value
