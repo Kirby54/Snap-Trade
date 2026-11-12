@@ -1,0 +1,7 @@
+{
+  "name": "chart-trader",
+  "version": "1.0.0",
+  "description": "Envoie une capture de chart, reçois LONG/SHORT/PAS DE TRADE avec entrée, stop loss et take profit.",
+  "license": "MIT",
+  "keywords": ["trading", "chart", "technical-analysis", "stop-loss", "take-profit"]
+}
