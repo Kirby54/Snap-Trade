@@ -86,7 +86,8 @@ capital pour un calcul exact.
 **🟡 À vérifier** — gap à l'ouverture : au-delà de 28 375 ou sous 28 150, le
 plan est caduc, renvoyer une capture.
 
-**➡️ Suite** — `alerts` sur 28 295 / 28 375 · `budget` pour la taille.
+**➡️ Suite** — noter ce signal dans le journal · `alerts` sur 28 295 /
+28 375 · `budget` pour la taille.
 
 <sub>Lecture technique, pas un conseil financier. Teste en démo d'abord.</sub>
 

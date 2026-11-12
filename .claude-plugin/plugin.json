@@ -1,7 +1,23 @@
 {
   "name": "snap-and-trade",
-  "version": "2.0.0",
-  "description": "Envoie une capture de chart, reçois analyse + LONG/SHORT/PAS DE TRADE avec entrée, SL et TP. Inclut les 11 modules day-trader : scanner, news, résultats, entrée, sortie, simulation, taille, risque, ordre, alertes, Congrès.",
+  "description": "Envoie une capture de chart, reçois l'analyse puis LONG / SHORT / PAS DE TRADE avec entrée, stop loss et take profit. Inclut les 11 modules day-trader et un journal de backtest.",
+  "version": "2.1.0",
+  "author": {
+    "name": "Kirby54",
+    "url": "https://github.com/Kirby54"
+  },
+  "homepage": "https://github.com/Kirby54/Snap-Trade",
+  "repository": "https://github.com/Kirby54/Snap-Trade",
   "license": "MIT",
-  "keywords": ["trading", "chart", "technical-analysis", "stop-loss", "take-profit"]
+  "keywords": [
+    "claude-code",
+    "claude-skills",
+    "trading",
+    "chart-analysis",
+    "technical-analysis",
+    "stop-loss",
+    "take-profit",
+    "backtesting",
+    "paper-trading"
+  ]
 }

@@ -1,0 +1,33 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Description de la skill sous 1024 caractères
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re, sys
+          s = open("skills/snap-and-trade/SKILL.md", encoding="utf-8").read()
+          d = " ".join(re.search(r"description: >-\n(.*?)\nargument-hint", s, re.S).group(1).split())
+          print(len(d), "caractères")
+          sys.exit(len(d) > 1024)
+          PY
+      - name: Manifestes JSON valides
+        run: python -c "import json; [json.load(open(p, encoding='utf-8')) for p in ('.claude-plugin/plugin.json', '.claude-plugin/marketplace.json')]"
+      - name: Tests
+        run: python -m unittest discover -s tests

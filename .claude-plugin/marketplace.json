@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "snap-and-trade",
+  "description": "Snap & Trade : la skill de trading tout-en-un pour Claude.",
+  "owner": {
+    "name": "Kirby54",
+    "url": "https://github.com/Kirby54"
+  },
+  "plugins": [
+    {
+      "name": "snap-and-trade",
+      "description": "Capture de chart → analyse + LONG / SHORT / PAS DE TRADE avec entrée, SL, TP. Plus scanner, news, résultats, entrée, sortie, simulation, taille, risque, ordre (paper), alertes, Congrès et journal de backtest.",
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/Kirby54/Snap-Trade"
+    }
+  ]
+}

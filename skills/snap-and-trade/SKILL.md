@@ -1,26 +1,19 @@
 ---
 name: snap-and-trade
 description: >-
-  Snap & Trade, la skill de trading tout-en-un. (1) L'utilisateur envoie une
-  capture d'écran de n'importe quel graphique (actions, crypto, forex,
-  indices, matières premières, futures; toute unité de temps, toute
-  plateforme : TradingView, MT4/MT5, Binance...) et reçoit l'analyse
-  complète étape par étape puis une fiche de trade visuelle : LONG / SHORT /
-  PAS DE TRADE, entrée, stop loss, TP1, TP2, R:R, invalidation, taille de
-  position. (2) Elle contient aussi les 11 modules du pack day-trader :
-  scanner (cassures, drapeaux, survente sur tout le marché US), news (Yahoo +
-  8-K SEC), analyst (résultats trimestriels SEC EDGAR), entry (timing de
-  cassure du range d'ouverture), exit (stop et objectif), timemachine
-  (10 000 simulations + historique), budget (taille de position), risk
-  (contrôle des limites PASS/BLOCK), broker (tickets d'ordre Alpaca, paper
-  par défaut, jamais sans un oui), alerts (alertes de prix, cloche
-  d'ouverture) et pelosi (trades déclarés du Congrès). À utiliser dès qu'une
-  capture de chart est envoyée, ou quand l'utilisateur dit « analyse ce
-  chart », « buy ou sell ? », « long ou short ? », « donne-moi SL et TP »,
-  « je rentre où ? », « scanne le marché », « des news sur TSLA ? »,
-  « résultats d'Apple », « combien d'actions ? », « check mon risque »,
-  « passe l'ordre », « alerte-moi si », « qu'achète Pelosi », « what's the
-  trade », « long or short », « scan the market », « any news on ».
+  Snap & Trade, skill de trading tout-en-un. Capture d'écran de n'importe quel
+  chart (actions, crypto, forex, indices, futures; toute UT; TradingView,
+  MT4/MT5, FX Replay, Binance) : analyse étape par étape puis fiche de trade
+  LONG / SHORT / PAS DE TRADE avec entrée, stop loss, TP1, TP2, R:R,
+  invalidation et taille. Inclut 11 modules (actions US) : scanner, news,
+  analyst (résultats SEC), entry, exit, timemachine, budget, risk, broker
+  (Alpaca, paper, jamais sans un oui), alerts, pelosi (trades du Congrès),
+  plus un journal de backtest (taux de réussite, R moyen). À utiliser dès
+  qu'une capture de chart est envoyée, ou pour « analyse ce chart », « long ou
+  short ? », « buy ou sell ? », « SL et TP ? », « scanne le marché », « news
+  sur TSLA ? », « résultats d'Apple », « combien d'actions ? », « check mon
+  risque », « passe l'ordre », « alerte-moi si », « qu'achète Pelosi », « note
+  ce trade », « mes stats de backtest », « long or short ».
 argument-hint: "[capture du chart] | [module] [TICKER] [capital, risque %]"
 ---
 
@@ -128,6 +121,42 @@ budget et de risque, à copier en `trader/config.json`), `targets.example.json`,
 `scanner` → `news` → `entry` → `exit` → `timemachine` → `budget` → `risk` →
 `broker` → `alerts`. Les modules se passent le relais par les fichiers du
 dossier `trader/` (dans le dossier de travail).
+
+### Ce que chaque mode couvre
+
+| | actions / ETF US | crypto, forex, indices, futures | long | short |
+| --- | --- | --- | --- | --- |
+| mode capture + `plan.py` + journal | ✅ | ✅ | ✅ | ✅ |
+| news, analyst, scanner, pelosi | ✅ | ❌ | — | — |
+| entry, exit, timemachine, budget | ✅ | ❌ | ✅ | ❌ |
+| risk, broker (Alpaca), alerts | ✅ | ❌ | ✅ | sortie seulement |
+
+Si l'utilisateur demande un module hors de cette grille (par exemple
+`timemachine` sur du forex, ou `exit` en short), le dire en une ligne et
+faire le travail en mode capture avec `plan.py` à la place.
+
+---
+
+## Mode journal (backtest FX Replay et suivi réel)
+
+Pour prouver que les signaux marchent, chaque signal est noté puis son
+résultat. Lire `references/backtest.md` (protocole sans biais pour FX Replay
+ou tout outil de replay) avant de commencer une série.
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/scripts/journal.py" add --asset EURUSD --tf 15m --side short --entry 1.0850 --sl 1.0870 --tp1 1.0810 --tp2 1.0790 --confidence 3 --setup pullback --source replay
+python3 "${CLAUDE_SKILL_DIR}/scripts/journal.py" add --asset BTCUSD --tf 1h --side none --setup range --confidence 1   # un PAS DE TRADE
+python3 "${CLAUDE_SKILL_DIR}/scripts/journal.py" result 1 --outcome tp1        # sl | tp1 | tp2 | be | exit --exit PRIX | nofill
+python3 "${CLAUDE_SKILL_DIR}/scripts/journal.py" list
+python3 "${CLAUDE_SKILL_DIR}/scripts/journal.py" stats                          # global
+python3 "${CLAUDE_SKILL_DIR}/scripts/journal.py" stats --by confidence          # ou setup, asset, tf, side, source
+```
+
+Journal par défaut : `trader/journal.csv` dans le dossier de travail
+(`--file` pour un autre). Après chaque fiche de trade en mode capture,
+proposer en une ligne de la noter dans le journal. Après chaque `stats`,
+dire en une phrase ce que les chiffres montrent, sans les embellir : sous
+30 trades, préciser que l'échantillon est trop petit pour conclure.
 
 ---
 
