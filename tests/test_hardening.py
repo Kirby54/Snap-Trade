@@ -35,6 +35,19 @@ class SizingSafety(unittest.TestCase):
             for value in ('nan', 'inf', '-1'):
                 self.assertEqual(plan(f'--{flag}={value}').returncode, 2)
 
+    def test_cli_uses_utf8_even_with_legacy_windows_encoding(self):
+        env = dict(os.environ, PYTHONIOENCODING='cp1252')
+        p = subprocess.run([sys.executable, os.path.join(SCRIPTS, 'plan.py'),
+                            '--side', 'long', '--entry', '100', '--sl', '98', '--tp', '104', '--json'],
+                           env=env, capture_output=True)
+        self.assertEqual(p.returncode, 0)
+        self.assertTrue(json.loads(p.stdout.decode('utf-8'))['valid'])
+        p = subprocess.run([sys.executable, os.path.join(SCRIPTS, 'plan.py'),
+                            '--side', 'long', '--entry', 'nan', '--sl', '98', '--tp', '104'],
+                           env=env, capture_output=True)
+        self.assertEqual(p.returncode, 2)
+        self.assertIn('nombre fini', p.stderr.decode('utf-8'))
+
     def test_arithmetic_overflow_fails_cleanly(self):
         p = plan('--account', '1e308', '--point-value', '1e-308', '--fx-rate', '1e-308')
         self.assertEqual(p.returncode, 2)

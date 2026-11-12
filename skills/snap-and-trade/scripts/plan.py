@@ -109,6 +109,10 @@ def calculate(a):
 
 
 def main():
+    # Pipes use the Windows locale by default; keep CLI/JSON UTF-8 everywhere.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--side", required=True, choices=["long", "short", "buy", "sell"])
     for flag in ("entry", "sl"):

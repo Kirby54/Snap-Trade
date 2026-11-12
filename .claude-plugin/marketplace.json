@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "snap-and-trade",
-  "description": "Snap & Trade : la skill de trading tout-en-un pour Claude.",
+  "description": "Snap & Trade par Kirby54 : analyse de graphiques et gestion du risque.",
   "owner": {
     "name": "Kirby54",
     "url": "https://github.com/Kirby54"

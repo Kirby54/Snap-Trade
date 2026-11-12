@@ -5,7 +5,7 @@
 ![licence](https://img.shields.io/badge/licence-MIT-green)
 ![python](https://img.shields.io/badge/python-3.10%2B-blue)
 
-La skill Claude de trading **tout-en-un**. Envoie une **capture de n'importe
+Un assistant de trading **tout-en-un**, un projet de [Kirby54](https://github.com/Kirby54). Envoie une **capture de n'importe
 quel chart** (actions, crypto, forex, indices, futures ; toute unité de temps ;
 TradingView, MT4/MT5, FX Replay, Binance...) et reçois l'analyse étape par
 étape, puis une fiche de trade claire :
