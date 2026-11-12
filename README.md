@@ -1,7 +1,7 @@
 # 📸 Snap & Trade
 
 [![tests](https://github.com/Kirby54/Snap-Trade/actions/workflows/tests.yml/badge.svg)](https://github.com/Kirby54/Snap-Trade/actions/workflows/tests.yml)
-![version](https://img.shields.io/badge/version-2.1.0-blue)
+![version](https://img.shields.io/badge/version-2.2.0-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![python](https://img.shields.io/badge/python-3.10%2B-blue)
 
@@ -112,9 +112,39 @@ a statistical trading edge.
 python -m unittest discover -s tests
 ```
 
-The suite contains 324 tests. GitHub Actions runs it on Linux, Windows and
+The suite runs on every push and pull request across Linux, Windows and
 macOS with Python 3.10 and 3.13. The badge shows the actual workflow status.
-Passing software tests does not establish trading profitability.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for offline checks and conventions.
+
+```bash
+python tools/validate_repo.py
+```
+
+### Risk calculations (v2.2)
+
+`plan.py` rejects non-finite numbers, invalid budgets and unordered targets.
+It supports currency conversion (`--fx-rate`), estimated round-trip costs
+per unit (`--cost-per-unit`), quantity steps (`--qty-step`), minimum size
+(`--min-qty`) and a notional cap (`--max-notional`). Quantities are rounded
+down. Risk above 2% requires an explicit user request and `--allow-high-risk`.
+
+See [units, examples and limitations](skills/snap-and-trade/references/dimensionnement.md).
+The journal accepts `--cost-r` to subtract realized costs from R statistics;
+zero means gross results. Existing v2.1 CSV files remain compatible. Journal
+access is exclusive and writes use atomic replacement.
+
+### What is checked, and what still needs measurement
+
+| Area | Status |
+| --- | --- |
+| Calculations, input validation and module behavior | Automated fixture-based tests |
+| Repository metadata, manifests and local references | Automated offline checks |
+| Model interpretation of chart screenshots | Requires a fixed image set and archived responses |
+| Profitability after costs and stability out of sample | Not demonstrated |
+| Live provider and broker integration | Depends on services and permissions; fixture tests are insufficient |
+
+A green CI run does not validate a trading strategy. Contributing does not
+require placing orders or testing with real money.
 
 ## ⚠️ Disclaimer
 

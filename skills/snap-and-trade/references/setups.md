@@ -45,8 +45,8 @@ la taille moyenne d'une bougie récente. « R » = distance entrée → stop.
 - **Stop** : au-delà de l'extrême du mouvement + marge.
 - **TP** : premier niveau de structure opposé (TP1), départ du dernier
   mouvement (TP2).
-- **Confiance** : plafonnée à « moyenne » (contre-tendance), sauf si
-  confluence ≥ 4.
+- **Confiance** : plafonnée à « faible » en contre-tendance, quel que soit le
+  score de confluence (même règle que SKILL.md).
 
 ## 5. Figures (drapeau, triangle, épaule-tête-épaule, double sommet/creux)
 

@@ -7,8 +7,8 @@ Dans cet ordre. Noter ce qu'on voit, pas ce qu'on suppose.
 - **Actif** : nom/ticker en haut à gauche (TradingView), dans l'onglet
   (MT4/MT5), ou en titre (Binance). Inconnu → le dire, l'analyse reste
   possible.
-- **Unité de temps** : 1m, 5m, 15m, 1h, 4h, D, W. Inconnue → l'estimer
-  d'après l'axe du temps et l'écrire « ≈ ».
+- **Unité de temps** : 1m, 5m, 15m, 1h, 4h, D, W. Inconnue → demander la précision ; ne pas donner de signal
+  exécutable avec une unité de temps devinée.
 - **Dernier prix** : l'étiquette colorée sur l'axe de droite.
 - **Axe des prix** : lire au moins deux graduations pour connaître
   l'échelle. Échelle log ou non : en tenir compte pour les distances.
