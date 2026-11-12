@@ -1,7 +1,7 @@
 ---
-name: chart-trader
+name: snap-and-trade
 description: >-
-  Chart Trader, tout-en-un. L'utilisateur envoie une capture d'écran de
+  Snap & Trade, tout-en-un. L'utilisateur envoie une capture d'écran de
   n'importe quel graphique (actions, crypto, forex, indices, matières
   premières, futures; n'importe quelle unité de temps, n'importe quelle
   plateforme : TradingView, MT4/MT5, Binance, broker...) et reçoit
@@ -18,7 +18,7 @@ description: >-
 argument-hint: "[capture du chart] [capital et risque % optionnels]"
 ---
 
-# chart-trader
+# Snap & Trade
 
 Une capture d'écran entre, un plan de trade sort. Pas de questions inutiles :
 si le chart est lisible, on répond directement avec un sens, une entrée, un

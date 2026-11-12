@@ -1,4 +1,4 @@
-# chart-trader
+# Snap & Trade
 
 Une skill Claude tout-en-un : envoie une **capture d'écran de n'importe quel
 graphique** (actions, crypto, forex, indices, futures ; n'importe quelle unité
@@ -27,12 +27,12 @@ et le calcul de taille. Inspirée du pack
 
 ## Installation
 
-**Claude Code** : copie le dossier `skills/chart-trader` dans
+**Claude Code** : copie le dossier `skills/snap-and-trade` dans
 `~/.claude/skills/` (Windows : `%USERPROFILE%\.claude\skills\`).
 
 **Plugin** : ce repo est aussi un plugin Claude Code (`.claude-plugin/plugin.json`).
 
-**Claude.ai / Desktop** : zippe le dossier `skills/chart-trader` et importe-le
+**Claude.ai / Desktop** : zippe le dossier `skills/snap-and-trade` et importe-le
 dans *Paramètres > Capacités > Skills*.
 
 ## Utilisation
@@ -43,7 +43,7 @@ TP », ou « analyse, j'ai 2 000 $ et je risque 1 % ».
 Le script de calcul peut aussi s'utiliser seul :
 
 ```bash
-python3 skills/chart-trader/scripts/plan.py --side short --entry 67450 --sl 68120 --tp 66110 65300 --account 2000 --risk-pct 1
+python3 skills/snap-and-trade/scripts/plan.py --side short --entry 67450 --sl 68120 --tp 66110 65300 --account 2000 --risk-pct 1
 ```
 
 ## Avertissement
