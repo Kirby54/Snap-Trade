@@ -2,96 +2,109 @@
 
 [![tests](https://github.com/Kirby54/Snap-Trade/actions/workflows/tests.yml/badge.svg)](https://github.com/Kirby54/Snap-Trade/actions/workflows/tests.yml)
 ![version](https://img.shields.io/badge/version-2.2.0-blue)
-![licence](https://img.shields.io/badge/licence-MIT-green)
+![license](https://img.shields.io/badge/license-MIT-green)
 ![python](https://img.shields.io/badge/python-3.10%2B-blue)
 
-Un assistant de trading **tout-en-un**, un projet de [Kirby54](https://github.com/Kirby54). Envoie une **capture de n'importe
-quel chart** (actions, crypto, forex, indices, futures ; toute unité de temps ;
-TradingView, MT4/MT5, FX Replay, Binance...) et reçois l'analyse étape par
-étape, puis une fiche de trade claire :
+An **all-in-one trading assistant** by [Kirby54](https://github.com/Kirby54).
+Send a **screenshot of a chart**—stocks, crypto, forex, indices or futures,
+on any timeframe—from TradingView, MT4/MT5, FX Replay, Binance or another
+platform. Get a step-by-step analysis followed by a clear trade plan.
 
-### 🔴 SHORT · NDX · 5 min
+### Example: conditional SHORT · NDX · 5 min
 
-**Confiance** 🟢🟢⚪⚪⚪ faible (2/5) · **R:R** 1,8 / 2,4
+**Confidence:** low (2/5) · **Reward-to-risk:** 1.8 / 2.4
 
-| | niveau | détail |
+| | Level | Details |
 | --- | --- | --- |
-| 🟢 **Entrée** | **28 295** | limite, après une bougie de rejet clôturée |
-| 🔴 **Stop loss** | **28 375** | au-dessus du dernier sommet + marge |
-| 🎯 **TP1** | **28 150** | 1,8R |
-| 🎯 **TP2** | **28 100** | 2,4R |
-| ⛔ **Invalidation** | **28 375** | clôture 5 min au-dessus |
+| 🟢 **Entry** | **28,295** | Conditional limit entry after a closed rejection candle |
+| 🔴 **Stop loss** | **28,375** | Above the latest swing high, with a buffer |
+| 🎯 **TP1** | **28,150** | 1.8R |
+| 🎯 **TP2** | **28,100** | 2.4R |
+| ⛔ **Invalidation** | **28,375** | A 5-minute candle closes above this level |
+
+Illustrative levels only. Until the trigger is confirmed, the decision is
+**NO TRADE**. An index chart's levels are not directly executable on a
+different futures or CFD instrument.
 
 ## ⚡ Installation
 
-**Claude Code (plugin)** :
+**Claude Code plugin:**
 
-```
+```text
 /plugin marketplace add Kirby54/Snap-Trade
 /plugin install snap-and-trade@snap-and-trade
 ```
 
-**Claude Code / Desktop (à la main)** : copie `skills/snap-and-trade` dans
-`~/.claude/skills/` (Windows : `%USERPROFILE%\.claude\skills\`).
+**Manual installation:** copy `skills/snap-and-trade` to
+`~/.claude/skills/` (Windows: `%USERPROFILE%\.claude\skills\`).
 
-**Claude.ai** : zippe le dossier `skills/snap-and-trade` et importe-le dans
-*Paramètres > Capacités > Skills*.
+**Claude.ai:** zip the `skills/snap-and-trade` folder and import it through
+*Settings > Capabilities > Skills*.
 
-Python 3.10+ suffit : bibliothèque standard, aucune clé API pour l'analyse.
+Requires Python 3.10+. The scripts use the standard library. Chart analysis
+does not require a market-data API key; broker integrations require their
+own account and credentials.
 
-## 🧭 Ce qu'elle fait
+## 🧭 Features
 
-**Mode capture** : lecture du chart → structure → niveaux → setup → score de
-confluence sur 5 → vérification des chiffres par script (R:R minimum 1,5, stop
-du bon côté) → fiche de trade → taille de position si tu donnes ton capital.
+**Screenshot mode:** chart reading → market structure → key levels → setup
+→ confluence score out of 5 → numerical checks (minimum 1.5 reward-to-risk
+and stop placement) → trade plan → position sizing when account capital
+is supplied. The decision is **LONG, SHORT or NO TRADE**.
 
-**Mode modules** : les 11 outils du pack
-[day-trader-skill](https://github.com/Jakeschincariol/day-trader-skill) dans
-une seule skill :
+**Module mode:** the 11 tools from
+[day-trader-skill](https://github.com/Jakeschincariol/day-trader-skill),
+available through one skill:
 
-| module | rôle |
+| Module | Purpose |
 | --- | --- |
-| 🔎 scanner | scanne les actions US : cassures, drapeaux, survente, range d'ouverture |
-| 📰 news | news Yahoo + dépôts 8-K de la SEC, seulement les nouvelles |
-| 📊 analyst | résultats trimestriels SEC EDGAR : CA, marges, BPA |
-| ⏱️ entry | signale la bougie qui clôture au-dessus du range d'ouverture |
-| 🚪 exit | stop et objectif avant d'entrer |
-| 🎲 timemachine | 10 000 séances simulées + historique du setup |
-| 💰 budget | taille de position dans tes limites |
-| 🛡️ risk | PASS / BLOCK sur toutes tes règles de risque |
-| 🏦 broker | ticket d'ordre Alpaca, paper par défaut, jamais sans ton oui |
-| 🔔 alerts | alertes de prix, stop, objectif, cloche d'ouverture |
-| 🏛️ pelosi | trades déclarés des membres du Congrès |
+| 🔎 scanner | Scan US stocks for breakouts, flags, oversold setups and opening ranges |
+| 📰 news | Find new Yahoo headlines and SEC 8-K filings |
+| 📊 analyst | Read SEC EDGAR quarterly revenue, margins and earnings per share |
+| ⏱️ entry | Identify a candle closing above the opening range |
+| 🚪 exit | Define the stop and target before entry |
+| 🎲 timemachine | Simulate 10,000 sessions and inspect historical setup occurrences |
+| 💰 budget | Size a position within account limits |
+| 🛡️ risk | Return PASS or BLOCK against the configured risk rules |
+| 🏦 broker | Prepare an Alpaca order ticket; paper trading by default, explicit approval required |
+| 🔔 alerts | Track price, stop, target and market-opening alerts |
+| 🏛️ pelosi | Read publicly disclosed congressional trades |
 
-**Mode journal** : chaque signal et son résultat dans un journal, puis les
-stats (taux de réussite, R moyen, profit factor, pire série), au global ou par
-confiance, setup, actif. Fait pour les backtests FX Replay sans biais
-([protocole](skills/snap-and-trade/references/backtest.md)).
+**Journal mode:** record signals and outcomes, then review win rate, average R,
+profit factor and the longest losing streak. Group results by confidence,
+setup or asset. Follow the
+[replay testing protocol](skills/snap-and-trade/references/backtest.md)
+to reduce selection and hindsight bias.
 
-### Ce que chaque mode couvre
+### Market coverage
 
-| | actions / ETF US | crypto, forex, indices, futures | long | short |
+| Mode or modules | US stocks / ETFs | Crypto, forex, indices, futures | Long | Short |
 | --- | --- | --- | --- | --- |
-| capture + journal | ✅ | ✅ | ✅ | ✅ |
+| Screenshot + journal | ✅ | ✅ | ✅ | ✅ |
 | news, analyst, scanner, pelosi | ✅ | ❌ | — | — |
 | entry, exit, timemachine, budget | ✅ | ❌ | ✅ | ❌ |
-| risk, broker (Alpaca), alerts | ✅ | ❌ | ✅ | sortie seulement |
+| risk, broker (Alpaca), alerts | ✅ | ❌ | ✅ | Exits only |
 
-## 💬 Utilisation
+Screenshot support does not imply that broker and data modules support
+every market. Confirm the exact instrument, contract specifications,
+account currency and broker constraints before using a calculated size.
 
-- Colle une capture : « long ou short ? », « donne-moi SL et TP »,
-  « analyse, j'ai 2 000 $ et je risque 1 % ».
-- Appelle un module : « scanne le marché », « des news sur TSLA ? »,
-  « résultats d'Apple », « qu'achète Pelosi ? ».
-- Journal : « note ce trade », « TP1 touché sur le #4 », « mes stats par
-  confiance ».
+## 💬 Usage
 
-## 📈 Résultats
+- Send a screenshot: “Long or short?”, “Give me SL and TP”, or
+  “Analyze this chart; my account is $2,000 and I risk 1%.”
+- Call a module: “Scan the market”, “Any news on TSLA?”,
+  “Apple earnings”, or “What did Pelosi disclose?”
+- Use the journal: “Log this trade”, “Trade #4 hit TP1”, or
+  “Show my results by confidence.”
 
-Backtest en cours sur FX Replay, protocole
-[ici](skills/snap-and-trade/references/backtest.md). Les chiffres seront
-publiés ici tels quels, pertes comprises. Un premier lot de 30 trades
-est exploratoire ; il ne suffit pas à démontrer un avantage statistique.
+## 📈 Results
+
+No verified profitability results are published yet. Use the
+[testing protocol](skills/snap-and-trade/references/backtest.md)
+and publish complete results, including losses and unfilled signals.
+An initial sample of 30 closed trades is exploratory; it does not establish
+a statistical trading edge.
 
 ## 🧪 Tests
 
@@ -99,47 +112,49 @@ est exploratoire ; il ne suffit pas à démontrer un avantage statistique.
 python -m unittest discover -s tests
 ```
 
-La suite est lancée à chaque push et pull request sur Linux, Windows et macOS,
-avec Python 3.10 et 3.13. Le badge indique son état réel. Pour les contrôles
-hors réseau et les conventions, voir [CONTRIBUTING.md](CONTRIBUTING.md).
+The suite runs on every push and pull request across Linux, Windows and
+macOS with Python 3.10 and 3.13. The badge shows the actual workflow status.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for offline checks and conventions.
 
 ```bash
 python tools/validate_repo.py
 ```
 
-### Calculs de risque (v2.2)
+### Risk calculations (v2.2)
 
-`plan.py` rejette les nombres non finis, les budgets invalides et les TP mal
-ordonnés. Il peut intégrer conversion de devise (`--fx-rate`), coûts par unité
-(`--cost-per-unit`), pas de quantité (`--qty-step`), minimum (`--min-qty`) et
-plafond de notionnel (`--max-notional`). Les quantités sont arrondies vers le
-bas. Un risque supérieur à 2 % exige `--allow-high-risk` et une demande explicite.
+`plan.py` rejects non-finite numbers, invalid budgets and unordered targets.
+It supports currency conversion (`--fx-rate`), estimated round-trip costs
+per unit (`--cost-per-unit`), quantity steps (`--qty-step`), minimum size
+(`--min-qty`) and a notional cap (`--max-notional`). Quantities are rounded
+down. Risk above 2% requires an explicit user request and `--allow-high-risk`.
 
-[Unités, exemples et limites](skills/snap-and-trade/references/dimensionnement.md).
-Le journal accepte `--cost-r` pour déduire les coûts réalisés des statistiques ;
-0 signifie brut. CSV v2.1 compatibles, accès exclusif et écriture atomique.
+See [units, examples and limitations](skills/snap-and-trade/references/dimensionnement.md).
+The journal accepts `--cost-r` to subtract realized costs from R statistics;
+zero means gross results. Existing v2.1 CSV files remain compatible. Journal
+access is exclusive and writes use atomic replacement.
 
-### Ce qui est vérifié, ce qui reste à mesurer
+### What is checked, and what still needs measurement
 
-| Élément | État |
+| Area | Status |
 | --- | --- |
-| Calculs, validations et comportements des modules | Tests automatisés sur fixtures |
-| Contrats du dépôt, manifestes et références locales | Contrôles automatiques hors réseau |
-| Lecture des captures par le modèle | À mesurer sur un jeu de captures figé et des réponses archivées |
-| Rentabilité après coûts et stabilité hors échantillon | Non démontrées ; aucun résultat inventé |
-| Intégration réelle avec fournisseurs / courtier | Dépend des services et autorisations ; tests sur fixtures insuffisants |
+| Calculations, input validation and module behavior | Automated fixture-based tests |
+| Repository metadata, manifests and local references | Automated offline checks |
+| Model interpretation of chart screenshots | Requires a fixed image set and archived responses |
+| Profitability after costs and stability out of sample | Not demonstrated |
+| Live provider and broker integration | Depends on services and permissions; fixture tests are insufficient |
 
-Une CI verte ne valide pas une stratégie de trading. Aucun ordre ni test en
-argent réel n'est nécessaire pour contribuer.
+A green CI run does not validate a trading strategy. Contributing does not
+require placing orders or testing with real money.
 
-## ⚠️ Avertissement
+## ⚠️ Disclaimer
 
-Outil d'analyse technique et d'apprentissage, **pas un conseil en
-investissement**. Une capture montre le passé ; le plan est une lecture, pas
-une prédiction. La plupart des traders particuliers perdent de l'argent,
-surtout avec levier. Teste en démo / paper trading d'abord.
+For technical analysis and education, **not investment advice**.
+A screenshot shows past price action; a trade plan is an interpretation,
+not a prediction. Stops do not guarantee an execution price or a maximum
+loss. Test in a demo or paper account first.
 
-## Licence
+## License
 
-MIT. Les modules day-trader sont © 2026 Jake Schincariol (MIT), voir
-[LICENSE](LICENSE). Historique des versions : [CHANGELOG](CHANGELOG.md).
+MIT. The day-trader modules are © 2026 Jake Schincariol and retain their
+MIT attribution; see [LICENSE](LICENSE).
+Release history: [CHANGELOG](CHANGELOG.md).
