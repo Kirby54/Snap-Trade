@@ -1,6 +1,10 @@
 
 # Module exit
 
+## v2.3 direction support
+
+Long and short supported. Side is inherited from entry.json; an explicit conflicting flag is refused. For a short, stop rounds up above entry and targets are below entry. `--stop or-high` is available; midpoint is symmetric. Example: `exit.py plan --symbol TSLA --side sell --entry 100 --stop pct:1 --target 2R`.
+
 The Exit Planner decides how a trade ends before it starts. The stop is where
 the setup has failed. The target is where you take what you came for. Both
 are set BEFORE the entry, written down and handed on, so nobody has to decide
@@ -49,7 +53,7 @@ A level setup has no opening range to lean on, so it needs a stop you name.
 - **Refused, with the reason.** A stop at or above the entry. A target at or
   below it. A risk under 0.05% of the price: too tight to survive the
   spread, normal wiggle would stop you out. An entry.json that has not
-  triggered (unless you give `--entry`). A short: v2 plans longs only.
+  triggered (unless you give `--entry`). A stop/target on the wrong side of the selected direction is refused.
 - **Flat by.** 15:55 by default (or `flat_by` in the config). Out by then,
   win or lose, no overnight hold. On a 1:00 p.m. early close it moves up to
   12:55. An entry at or after the flat-by time is refused.
@@ -97,7 +101,7 @@ sizes it: a $50 max loss per trade buys floor(50 / 5.86) = 8 shares.
   never prints a P&L or a return.
 - Nothing here promises winning trades or money. A 1R target is not a
   prediction that the price gets there.
-- Long side only. v2 plans longs only.
+- Both directions supported; inherit or explicitly select side.
 
 ## What it never does
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "snap-and-trade",
-  "description": "Snap & Trade par Kirby54 : analyse de graphiques et gestion du risque.",
+  "description": "Snap & Trade by Kirby54: chart review, risk checks and replay journals.",
   "owner": {
     "name": "Kirby54",
     "url": "https://github.com/Kirby54"
@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "snap-and-trade",
-      "description": "Capture de chart → analyse + LONG / SHORT / PAS DE TRADE avec entrée, SL, TP. Plus scanner, news, résultats, entrée, sortie, simulation, taille, risque, ordre (paper), alertes, Congrès et journal de backtest.",
+      "description": "Two-timeframe chart review with available-evidence scoring, numerical checks, opening plans, US-stock modules and a replay journal.",
       "source": "./",
       "category": "productivity",
       "homepage": "https://github.com/Kirby54/Snap-Trade"

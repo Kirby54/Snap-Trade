@@ -1,6 +1,10 @@
 
 # Module entry
 
+## v2.3 direction support
+
+Select `--side sell` (or `short`) for a closed breakdown below the opening-range low or explicit level. Default is buy. The output side is preserved in entry.json. Analysis only; no order is placed.
+
 The Entry Timer turns a setup into one moment: the bar that confirms it. It
 reads bars, 1-minute or 5-minute, and waits for each one to finish. A price
 that pokes above the high in the middle of a bar is not an entry. A bar that
@@ -104,7 +108,7 @@ and the trigger moves to 10:35 AM at 365.75 (the 10:30 bar, 7.98x).
   and can lag. Say so when a minute matters.
 - A signal is information, not an order, and not a promise. Nothing here
   promises winning trades or money.
-- Long side only. v2 plans longs only. If the user wants a short, say that.
+- Both directions supported; select sell/short explicitly for short analysis.
 - One trigger per setup per day: the first close above. Later closes do not
   reset it.
 - Never call an entry early because a bar looks like it will close above.

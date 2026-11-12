@@ -1,77 +1,64 @@
-# Protocole de backtest (FX Replay ou tout outil de replay)
+# Replay and paper-trading evaluation
 
-But : savoir si les signaux du mode capture gagnent plus qu'ils ne
-perdent, sans se mentir.
+No measured trading edge is currently demonstrated. This protocol records
+outcomes without changing a plan after seeing future prices. A green CI run,
+a confluence score or resampled simulations cannot establish profitability.
 
-## Règles anti-biais
+## Freeze before starting
 
-1. **Ne jamais voir la suite.** Dans FX Replay, avancer jusqu'à un point,
-   faire la capture, ne pas avancer avant d'avoir la fiche de trade.
-2. **Choisir les points au hasard** (une date et une heure tirées avant de
-   regarder le chart), pas « là où il se passe quelque chose ».
-3. **Garder tous les signaux**, y compris les PAS DE TRADE et les pertes.
-   Ne jamais refaire une analyse qui a perdu.
-4. **Ne pas changer le plan après coup** : entrée, stop, TP tels que donnés
-   par la fiche.
-5. **Mélanger** marchés (forex, indices, crypto, actions) et unités de
-   temps (5m, 15m, 1h, 4h), et noter `--source replay`.
+Record repository version, model/version, prompts/settings, instruments,
+timeframes, date-selection method, scoring version and exit management.
+Separate development and held-out evaluation periods. Choose observation
+times before opening the charts. Keep every signal, loss and NO TRADE.
 
-## Déroulé d'un signal
+For each observation archive the original 5m + context images without future
+bars, their timestamps/timezone, raw model response and numerical commands.
+Keep evidence outside public Git until you have removed account information.
+Read `evaluation.md` for visual-reading metrics separate from trading results.
 
-1. Capture FX Replay → fiche de trade Snap & Trade.
-2. Noter : `journal.py add ...` avec exactement les niveaux de la fiche.
-3. Avancer le replay jusqu'à ce que l'un se produise :
-   - l'entrée n'est jamais atteinte avant l'invalidation → `nofill`
-   - le stop est touché avant TP1 → `sl`
-   - TP1 touché, puis retour à l'entrée → `tp1`
-   - TP2 touché → `tp2`
-   - sortie manuelle (fin de séance, invalidation) → `exit --exit PRIX`
-   Si stop et TP sont touchés dans la même bougie : compter `sl` (prudence).
-4. Noter : `journal.py result ID --outcome ...`.
+## Record a signal
 
-## Lire les stats
+1. In FX Replay or another replay tool, stop at the selected timestamp.
+2. Capture both timeframes and obtain the short card before advancing time.
+3. Log the exact levels with `journal.py add`, including `--source replay`.
+   For NO TRADE use `--side none`. Include `score=3/3; scoring=v2.3` in notes.
+4. Do not rerun a losing analysis, adjust the historical entry, or remove it.
+5. Advance without changing the fixed plan:
+   - Entry never fills before expiry/invalidation → `nofill`.
+   - Stop before TP1 → `sl` (idealized fill only).
+   - TP1, then remaining position exits at entry → `tp1`.
+   - TP2 → `tp2`; use only if TP2 existed in the original plan.
+   - Realized slippage, manual/time exit → `exit --exit PRICE` using the
+     volume-weighted exit price of the **whole** position, not just the remainder.
+   - Stop and target in the same candle without lower-resolution evidence:
+     conservatively count the stop first and disclose that assumption.
+6. Use `journal.py result ID --outcome ... --cost-r VALUE`. Cost R is total
+   monetary fees/spread/slippage costs not already reflected in fills divided
+   by initial monetary risk. Avoid double counting; 0 means gross statistics.
 
-- **R moyen > 0** : statistique descriptive ; 30 trades sont un premier
-  contrôle, jamais une preuve suffisante de rentabilité.
-- **Taux de réussite** seul ne veut rien dire : 35 % à 2,5R gagne, 70 % à
-  0,3R perd.
-- `stats --by confidence` : les signaux 4–5/5 doivent faire mieux que les
-  2/5. Sinon le barème ne sert à rien et il faut le revoir.
-- `stats --by setup` : retirer ou corriger un setup qui perd sur un vrai
-  échantillon.
-- Les résultats passés en replay ne garantissent rien en réel (glissement,
-  spread, émotions). Étape suivante : `--source paper` sur 1 à 2 mois.
+## Report honestly
 
-## Reproductibilité et validation hors échantillon
+Publish anonymized signal/outcome data, sample sizes, costs, unfilled/open
+counts and all losses. Report average net R, profit factor and losing streaks
+by market, timeframe and confidence, separating replay, paper and live.
+The initial 30 trades are exploratory. Positive average R in a short or
+dependent sample is not proof of an edge. A held-out period and subsequent
+paper observation are necessary to assess whether improvements generalize.
 
-- Figer avant la série : version du dépôt, modèle et version, prompt,
-  paramètres, marchés/UT, dates tirées au sort, coûts, règle de sortie.
-- Conserver la capture originale (sans futur), la réponse brute, les prix
-  saisis et la commande `plan.py`. Vérifier manuellement les niveaux lus.
-- Séparer une période de développement et une période finale jamais utilisée
-  pour ajuster les règles. Ne pas mélanger replay, paper et réel dans un verdict.
-- Publier le journal complet anonymisé et le nombre de signaux PAS DE TRADE,
-  non exécutés, ouverts et clôturés ; ne pas supprimer les pertes.
-- Indiquer frais, spread et glissement dans `--cost-r` lors du résultat :
-  coûts monétaires totaux / risque monétaire initial. Sans cela, stats brutes.
-- Rapporter taille d'échantillon, R moyen net, profit factor et pire série,
-  par marché/UT/confiance, ainsi que les limites et régimes couverts. Un
-  échantillon court ou dépendant ne justifie pas une probabilité de réussite.
-- Un stop touché peut être exécuté au-delà du niveau : saisir `outcome exit`
-  et le prix effectif. Une sortie manuelle après TP1 ne peut pas être décrite
-  par un seul prix de position restante : utiliser le prix de sortie moyen
-  pondéré de toute la position (frais saisis séparément).
+Confluence buckets are not calibrated odds. Fix the mapping for a series:
+low=2, medium=3, high=4, NO TRADE=0, with raw numerator/denominator in notes.
+Do not combine v2.1 fixed-/5 scores with v2.3 available-evidence scores without
+labelling versions. A test of the evaluator is not a measured model result.
 
-## Journal fiable
+## Journal storage and calculations
 
-Une commande à la fois. Écriture atomique avec fichier temporaire unique et
-verrou `.lock` ; si une autre commande est active, l'accès est refusé. Après
-un arrêt brutal, supprimer le verrou uniquement après avoir vérifié qu'aucun
-processus n'utilise le journal, puis faire une copie de sauvegarde. Préférer
-un disque local (les garanties d'un partage réseau dépendent du système).
-Les anciens CSV sans `cost_r` sont lus comme bruts et migrés à la prochaine
-écriture. Une ligne mal formée est refusée sans écraser le fichier.
-Les séries de pertes sont comptées dans l'ordre d'enregistrement des signaux,
-pas dans l'ordre de clôture ; elles ne représentent pas un drawdown monétaire.
-Sans TP2, la gestion split sort toute la position à TP1. Les deux colonnes
-comparent des gestions alternatives théoriques, pas deux résultats exécutés.
+One command at a time. A `.lock` file prevents concurrent readers/writers;
+unique temporary files and atomic replacement protect writes. After a crash,
+remove a stale lock only after checking no process uses the journal. Back up
+before any correction and document its reason. Prefer a local disk.
+
+Old CSVs without `cost_r` load as gross and migrate on the next write. Invalid
+rows are rejected without overwriting. Losing streaks follow signal-recording
+order, not closing order, and are not monetary drawdown. Without TP2, split
+management exits the whole position at TP1. With TP2, the two columns compare
+hypothetical exit policies; they are not two simultaneously executed results.

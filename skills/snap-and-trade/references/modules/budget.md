@@ -1,6 +1,10 @@
 
 # Module budget
 
+## v2.3 direction support
+
+Plan mode supports sell/short only with explicit `allow_short: true` in user config. Default remains buy only. Market shorts use the lower of fresh price and planned entry for conservative stop risk. Full notional is capped by available budget as a conservative collateral proxy; actual margin, borrow eligibility and fees must be checked at the broker. Weights mode remains buy only.
+
 The Budget Manager turns a plan ("buy TSLA at 364.18, stop 358.32") into an
 exact order ("buy 8 shares"), inside rules the user sets once. The stop
 decides the size: the further away the stop, the fewer shares. It writes a

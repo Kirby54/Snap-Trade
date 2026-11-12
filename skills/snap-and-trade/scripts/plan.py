@@ -54,6 +54,16 @@ def calculate(a):
         errors.append(f"stop du mauvais côté pour un {side}")
     elif risk / a.entry * 100 < a.min_stop_pct:
         errors.append(f"stop trop serré (< {a.min_stop_pct} % du prix)")
+    minimum_stop = a.avg_candle * a.min_candle_multiple if a.avg_candle is not None else None
+    if minimum_stop is not None and risk > 0 and risk < minimum_stop:
+        errors.append(f"stop inférieur au minimum bougies : {risk} < {minimum_stop}")
+    if a.open_price is not None:
+        if (a.open_price - a.sl) * sign <= 0:
+            errors.append("gap au-delà du stop : plan caduc")
+        elif (a.tp[0] - a.open_price) * sign <= 0:
+            errors.append("gap au-delà de TP1 : mouvement déjà réalisé, plan caduc")
+        else:
+            warnings.append("ouverture dans les bornes : attendre la confirmation et recalculer au prix d'entrée ; aucune exécution automatique")
     for first, second in zip(a.tp, a.tp[1:]):
         if (second - first) * sign <= 0:
             errors.append("les TP doivent être strictement ordonnés du plus proche au plus éloigné")
@@ -73,7 +83,7 @@ def calculate(a):
         errors.append(f"R:R net vers TP1 = {targets[0]['net_rr']:.2f}, sous le minimum {a.min_rr}")
         cost_price = a.cost_per_unit / (a.point_value * a.fx_rate)
         better = (a.tp[0] + a.min_rr * a.sl - sign * (1 + a.min_rr) * cost_price) / (1 + a.min_rr)
-        if better > 0 and (better - a.sl) * sign > 0:
+        if better > 0 and (better - a.sl) * sign > 0 and (minimum_stop is None or (better - a.sl) * sign >= minimum_stop):
             warnings.append(f"entrée limite à {fmt(better)} pour atteindre {a.min_rr}R net ; confirmer le setup à ce prix")
     size = None
     if a.account is not None or a.risk_amount is not None:
@@ -104,6 +114,7 @@ def calculate(a):
     return {"side": side, "entry": a.entry, "sl": a.sl, "risk_per_unit": risk,
             "risk_pct_of_price": risk / a.entry * 100 if risk > 0 else None,
             "fx_rate": a.fx_rate, "cost_per_unit": a.cost_per_unit,
+            "avg_candle": a.avg_candle, "minimum_stop_distance": minimum_stop,
             "targets": targets, "size": size, "valid": not errors,
             "errors": errors, "warnings": warnings}
 
@@ -118,10 +129,10 @@ def main():
     for flag in ("entry", "sl"):
         p.add_argument("--" + flag, type=number, required=True)
     p.add_argument("--tp", type=number, nargs="+", required=True)
-    for flag in ("account", "risk-amount", "qty-step", "min-qty", "max-notional"):
+    for flag in ("account", "risk-amount", "qty-step", "min-qty", "max-notional", "avg-candle", "open-price"):
         p.add_argument("--" + flag, type=number)
     for flag, default in (("risk-pct", "1"), ("point-value", "1"), ("min-rr", "1.5"),
-                          ("fx-rate", "1"), ("cost-per-unit", "0"), ("min-stop-pct", "0.05")):
+                          ("min-candle-multiple", "1.5"), ("fx-rate", "1"), ("cost-per-unit", "0"), ("min-stop-pct", "0.05")):
         p.add_argument("--" + flag, type=number, default=Decimal(default))
     p.add_argument("--allow-high-risk", action="store_true")
     p.add_argument("--json", action="store_true")
@@ -133,6 +144,8 @@ def main():
                 p.error(f"--{key.replace('_', '-')} doit être {'>= 0' if nonnegative else '> 0'}")
     if any(tp <= 0 for tp in a.tp):
         p.error("tous les TP doivent être > 0")
+    if a.min_candle_multiple < 1:
+        p.error("--min-candle-multiple doit être >= 1")
     if a.risk_pct > 100:
         p.error("--risk-pct doit être <= 100")
     if a.account is not None and a.risk_amount is not None and a.risk_amount > a.account:

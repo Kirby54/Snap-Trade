@@ -7,3 +7,4 @@ trader/
 !.env.example
 .coverage
 htmlcov/
+dist/

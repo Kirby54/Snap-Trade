@@ -1,6 +1,10 @@
 
 # Module timemachine
 
+## v2.3 direction support
+
+Both buy and sell plans are supported. Short replay logic, stop above entry and target below, is covered by tests. Simulations are resampled scenarios, not calibrated win probabilities or independent observations.
+
 The Time Machine sits between the plan and the money. trader-exit has set
 the entry, the stop and the target. Before anything is sized or sent, this
 skill asks one question: if today plays out like the stock's own last 60

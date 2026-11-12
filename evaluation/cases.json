@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "scope": "synthetic development fixtures; not a held-out market benchmark",
+  "cases": [
+    {
+      "id": "index_price_conflict",
+      "synthetic": true,
+      "images": [
+        {
+          "path": "evaluation/images/index_price_conflict.png",
+          "sha256": "3721ced5b7b5706859568a40d7b320ddfb2901f5c86ffef046df88dfce9fbb97"
+        },
+        {
+          "path": "evaluation/images/index_price_conflict-1h.png",
+          "sha256": "39b00f67ed89c8efb347e2e0ce59731bcd7ad93028a46f2d3c47bd6293a034de"
+        }
+      ],
+      "expected": {
+        "latest_price": 8372,
+        "signal": "NO TRADE",
+        "available": 3
+      }
+    },
+    {
+      "id": "missing_context",
+      "synthetic": true,
+      "images": [
+        {
+          "path": "evaluation/images/missing_context.png",
+          "sha256": "97c7a9e698dbbea399390fcd69a61e5c0bebdaac05be4d17438d5d13c2877f26"
+        }
+      ],
+      "expected": {
+        "latest_price": 8372,
+        "signal": "NO TRADE",
+        "available": 3
+      }
+    },
+    {
+      "id": "closed_session",
+      "synthetic": true,
+      "images": [
+        {
+          "path": "evaluation/images/closed_session.png",
+          "sha256": "33f74b135793120c3ebbb8520b8c6d52de5ccca15ce338108fca16d5126b68ee"
+        },
+        {
+          "path": "evaluation/images/closed_session-1h.png",
+          "sha256": "992dd941a7e38d173bcb6aa7a0ea9d3e039634121f232ea2b6549fd6b6531add"
+        }
+      ],
+      "expected": {
+        "latest_price": 8372,
+        "signal": "NO TRADE",
+        "available": 3
+      }
+    },
+    {
+      "id": "tight_stop",
+      "synthetic": true,
+      "images": [
+        {
+          "path": "evaluation/images/tight_stop.png",
+          "sha256": "9d2217199ed6334581dbba67844edaca5a8bc50ab46215f87b704fed66d2ccd7"
+        },
+        {
+          "path": "evaluation/images/tight_stop-1h.png",
+          "sha256": "d352f4c4af282ec406bd2f77a3d9fce49e9418cc36233ace44c37e330967f514"
+        }
+      ],
+      "expected": {
+        "latest_price": 8372,
+        "signal": "NO TRADE",
+        "available": 3
+      }
+    },
+    {
+      "id": "unreadable_price",
+      "synthetic": true,
+      "images": [
+        {
+          "path": "evaluation/images/unreadable_price.png",
+          "sha256": "bbf7639f0ea69dbd3edeb3e04a96f29571c8f3dd060941996741f5430951044b"
+        },
+        {
+          "path": "evaluation/images/unreadable_price-1h.png",
+          "sha256": "39b00f67ed89c8efb347e2e0ce59731bcd7ad93028a46f2d3c47bd6293a034de"
+        }
+      ],
+      "expected": {
+        "latest_price": null,
+        "signal": "NO TRADE",
+        "available": 3
+      }
+    }
+  ]
+}

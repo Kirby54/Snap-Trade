@@ -1,50 +1,50 @@
-# Dimensionnement et limites
+# Position sizing, units and limits
 
-`plan.py` ne passe aucun ordre. Prix strictement positifs uniquement : pas de
-contrats inverses, d'options, ni de produits à payoff non linéaire. Un calcul
-valide ne démontre ni la qualité du setup ni la faisabilité chez le courtier.
+`plan.py` never places orders. Positive-price, linear-payoff instruments only:
+not inverse contracts, options or arbitrary nonlinear derivatives. A valid
+calculation does not establish a profitable setup or broker eligibility.
 
-## Unités
-
-| Paramètre | Unité / règle |
+| Argument | Unit and meaning |
 | --- | --- |
-| `--entry`, `--sl`, `--tp` | Prix du même instrument, dans sa devise de cotation |
-| `--point-value` | Valeur d'un point par unité/lot/contrat dans la devise de cotation |
-| `--fx-rate` | Unité de devise du compte pour une unité de devise de cotation, défaut 1 |
-| `--account`, `--risk-amount`, `--max-notional` | Devise du compte |
-| `--cost-per-unit` | Coût aller-retour estimé par unité/lot/contrat dans la devise du compte, défaut 0 |
-| `--qty-step`, `--min-qty` | Pas et minimum du courtier ; sans pas, quantité théorique |
-| `--min-stop-pct` | Filtre technique en % du prix, défaut 0,05 ; ne modélise pas le spread réel |
+| `--entry`, `--sl`, `--tp` | Prices of the exact same instrument in quote currency |
+| `--point-value` | Quote-currency value of one price point per unit/lot/contract |
+| `--fx-rate` | Account-currency units per quote-currency unit; default 1 |
+| `--account`, `--risk-amount`, `--max-notional` | Account currency |
+| `--cost-per-unit` | Estimated round-trip cost per unit/lot/contract in account currency |
+| `--qty-step`, `--min-qty` | Broker quantity step/minimum; no step means theoretical size |
+| `--avg-candle` | Mean high-low range of 10–20 closed execution candles, in price points |
+| `--min-candle-multiple` | Minimum stop / mean-range ratio, default 1.5, CLI minimum 1 |
+| `--min-stop-pct` | Additional technical price-percent filter, default 0.05; not measured spread |
+| `--open-price` | Hypothetical/observed opening price for cancellation checks; no automatic entry |
 
-Confirmer les spécifications du symbole exact et le taux de conversion.
-Les exemples forex à 100000 supposent une cotation dont une unité de prix
-vaut 100000 unités de la devise de cotation par lot. Ne pas confondre point,
-pip, tick, valeur du tick et devise du compte.
+Screenshot mode requires `--avg-candle` and keeps the 1.5 multiple. Legacy
+standalone calls without it remain supported but do not pass the screenshot
+workflow. A small pivot buffer is separate from this minimum total distance.
+If no structural stop meets the floor and R:R, abstain. The floor is a
+provisional heuristic to test, not a guarantee that noise cannot hit a stop.
 
-## Calcul
+Confirm instrument specifications, account currency and conversion rate.
+For a standard forex lot, 100000 is a multiplier only for a suitable quote
+convention. Point, pip, tick and tick value are different. Index levels cannot
+be copied directly onto a future/CFD contract.
 
-Perte par unité = distance entrée-stop × valeur du point × conversion + coûts.
-Gain net par unité = distance entrée-TP × valeur du point × conversion − coûts.
-Le ratio contrôlé est gain net / perte par unité ; le ratio brut reste dans
-`targets[].rr`, le net dans `targets[].net_rr`.
-
-La quantité est le minimum des limites de budget de risque et de notionnel,
-puis arrondie **vers le bas** au pas demandé. Si elle ne permet pas une unité
-minimale, le plan est refusé. `size.max_loss` conserve son nom pour compatibilité,
-mais représente une **perte estimée** avec ces hypothèses, jamais une garantie.
-Le notionnel d'un future n'est pas sa marge exigée par le courtier.
+Loss/unit = entry-stop distance × point value × conversion + round-trip costs.
+Net gain/unit = entry-target distance × point value × conversion − costs.
+`targets[].rr` is gross; `targets[].net_rr` is the checked net ratio.
+Quantity respects risk and notional caps and rounds **down** to the supplied
+step. Reject when the result cannot meet the broker minimum. `size.max_loss`
+keeps its historical name but is an **estimated** stop loss, never a guarantee.
+Futures notional is not broker margin. Short eligibility and borrow costs
+are not verified by this arithmetic.
 
 ```bash
-# Contrats entiers, budget de risque de 100 dans la devise du compte
-python3 skills/snap-and-trade/scripts/plan.py --side long --entry 5000 --sl 4990 --tp 5025 --risk-amount 100 --point-value 5 --qty-step 1 --min-qty 1 --cost-per-unit 2
-
-# Action cotée USD, compte EUR, conversion illustrative et non cours actuel
-python3 skills/snap-and-trade/scripts/plan.py --side long --entry 100 --sl 98 --tp 105 --account 2000 --fx-rate 0.9 --qty-step 1 --cost-per-unit 0.1
+python3 skills/snap-and-trade/scripts/plan.py --side short --entry 8372 --sl 8390 --tp 8340 --avg-candle 10 --risk-amount 100 --point-value 1 --qty-step 1 --cost-per-unit 1
 ```
 
-Les frais fixes par ordre, le spread variable, les gaps et le glissement ne
-sont pas prévus automatiquement. Estimer prudemment les coûts par unité ou
-recalculer après dimensionnement. Aucun appel à un courtier ou fournisseur
-FX n'est effectué. Au-delà de 2 % du capital, `--allow-high-risk` est exigé ;
-ce drapeau doit correspondre à une demande explicite, jamais à une initiative
-de l'assistant. Le risque en montant ne peut pas dépasser le capital fourni.
+Opening at/beyond SL against the idea or at/beyond TP1 in its direction
+cancels the plan. Between those bounds, wait for fresh confirmation and
+recalculate with an actual entry. Quotes do not prove a session is open.
+Fixed per-order fees, changing spread, gaps and slippage need explicit
+assumptions; do not silently treat unknown costs as zero net costs. Over 2%
+of supplied capital requires `--allow-high-risk` and an explicit user request.
+Never set that flag or change a stop to force approval.

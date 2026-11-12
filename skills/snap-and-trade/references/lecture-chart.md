@@ -1,60 +1,52 @@
-# Lire une capture de chart
+# Reading chart screenshots
 
-Dans cet ordre. Noter ce qu'on voit, pas ce qu'on suppose.
+Record observations, not guesses. Read the execution and context charts together.
 
-## 1. Identifier
+## Price source and identity
 
-- **Actif** : nom/ticker en haut à gauche (TradingView), dans l'onglet
-  (MT4/MT5), ou en titre (Binance). Inconnu → le dire, l'analyse reste
-  possible.
-- **Unité de temps** : 1m, 5m, 15m, 1h, 4h, D, W. Inconnue → demander la précision ; ne pas donner de signal
-  exécutable avec une unité de temps devinée.
-- **Dernier prix** : l'étiquette colorée sur l'axe de droite.
-- **Axe des prix** : lire au moins deux graduations pour connaître
-  l'échelle. Échelle log ou non : en tenir compte pour les distances.
+1. Record exact ticker, instrument type, venue/provider and contract month if
+   relevant. Cash indices, futures, CFDs and ETFs are different instruments.
+2. Identify timeframe, date, timezone and last complete candle on each image.
+   If any is unclear, request clarification rather than inventing context.
+3. Prefer the **latest-price label on the price axis**, attached to the last
+   traded price. Distinguish it from order, bid/ask, indicator and drawing labels.
+4. The **header OHLC follows the cursor/crosshair** on many platforms: it may
+   describe a historical candle. Never use it as the current price by default.
+5. A watchlist/quote panel may show another instrument, a stale quote, a bid
+   or the prior close. Note discrepancies explicitly. Example: header 8394,
+   panel 8361, latest-price axis label 8372 → use 8372 and flag the other two.
+6. If the axis label is unreadable or ambiguous, ask for a clearer image or
+   a user-confirmed latest price. No executable signal from guessed digits.
+7. Read multiple price-axis graduations; handle log scale and decimals.
 
-## 2. Tendance et structure
+## Structure and two timeframes
 
-- Haussière : sommets et creux de plus en plus hauts.
-- Baissière : sommets et creux de plus en plus bas.
-- Range : sommets et creux à peu près aux mêmes niveaux.
-- Cassure de structure : le dernier creux d'une hausse (ou le dernier
-  sommet d'une baisse) est cassé en clôture → la tendance est remise en
-  cause.
-- Position par rapport aux moyennes mobiles si elles sont affichées
-  (prix au-dessus d'une MM montante = biais haussier).
+- Higher highs/lows indicate upward structure; lower highs/lows downward;
+  repeated bounds a range. A single opening gap does not establish trend.
+- Use a higher timeframe of the same instrument (5m + 1h is the default pair).
+  Require overlapping dates and the same timezone reference. If it is missing,
+  request it and keep the result conditional, with NO TRADE now.
+- Confirm swing breaks with closed candles. Read support/resistance as zones,
+  with visible pivots and retests. Do not invent levels hidden by a crop.
 
-## 3. Niveaux
+## Confirmation and volatility
 
-- Supports/résistances : zones touchées au moins deux fois, sommets et
-  creux marquants, chiffres ronds.
-- Lignes, zones, Fibonacci ou annotations déjà tracés par l'utilisateur :
-  les reprendre.
-- Ancien support cassé = nouvelle résistance, et inversement.
-- Gaps, mèches longues répétées au même prix.
+- Exclude the forming candle from confirmation and averages.
+- Estimate mean **high minus low** across 10–20 recent closed candles on the
+  execution timeframe. Record sample count, units and approximation. This is
+  not body size, an overnight gap or ATR; do not call it ATR.
+- Stop: beyond structural invalidation plus a buffer, and entry-stop distance
+  at least 1.5 times that mean range. If no defensible structure meets both
+  that floor and the minimum R:R, abstain. The floor is an uncalibrated safety
+  heuristic, not a guarantee against noise or a statistically optimal stop.
+- An absent indicator is unavailable, not bearish or a zero point. A cash
+  index with no meaningful volume has volume unavailable. Do not substitute
+  futures volume without identifying that different instrument and limitation.
 
-## 4. Bougies
+## Freshness and closed markets
 
-- Seulement les bougies **clôturées** (la dernière est souvent en cours).
-- Englobante, pin bar / marteau / étoile filante, inside bar, doji sur un
-  niveau, grande bougie de cassure.
-- Taille moyenne d'une bougie récente : sert à dimensionner la marge du
-  stop.
-
-## 5. Indicateurs visibles
-
-- RSI : au-dessus/sous 50, surachat > 70, survente < 30, divergences.
-- MACD : croisement, histogramme, divergences.
-- Moyennes mobiles : pente, croisements, prix qui rebondit dessus.
-- Bandes de Bollinger, VWAP, Ichimoku... : seulement si visibles.
-- Volume : hausse sur les cassures = confirmation ; cassure sans volume =
-  méfiance.
-
-## 6. Contexte
-
-- Le prix est-il au milieu de nulle part (loin de tout niveau) ? Alors
-  souvent PAS DE TRADE : le stop serait arbitraire.
-- Le mouvement est-il déjà très étendu (plusieurs grandes bougies d'affilée
-  sans pause) ? Entrer maintenant = mauvais R:R ; attendre un retour.
-- Unité de temps très courte (1m–5m) : marges plus serrées, mais bruit
-  plus fort. Le dire.
+Use the exact instrument's session/calendar. Do not infer that CAC 40 uses
+NYSE hours. If the market is closed, return an opening plan with cancellation
+bounds and a next-session recheck. If date/time/freshness is unknown, ask for
+it and abstain. Never execute from an old screenshot or describe a delayed
+provider quote as real time.

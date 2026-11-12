@@ -530,10 +530,11 @@ class Cli(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("holds TSLA, not NVDA", err)
 
-    def test_longs_only_and_flag_errors(self):
-        code, _, err = run(["check", "TSLA", "--offline", TSLA, "--side", "short"])
-        self.assertEqual(code, 1)
-        self.assertIn("v2 plans longs only", err)
+    def test_short_side_and_flag_errors(self):
+        code, out, err = run(["check", "TSLA", "--offline", TSLA, "--side", "short", "--json"])
+        self.assertIn(code, (0, 1))  # no trigger is a valid analysis, not an argument failure
+        self.assertEqual(err, "")
+        self.assertEqual(json.loads(out)["side"], "sell")
         code, _, err = run(["check", "TSLA", "--offline", TSLA, "--level", "300"])
         self.assertIn("--level is for --setup level", err)
         code, _, err = run(["check", "TSLA", "--offline", TSLA, "--setup", "level"])
