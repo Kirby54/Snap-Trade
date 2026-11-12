@@ -1,136 +1,159 @@
 ---
 name: snap-and-trade
 description: >-
-  Snap & Trade, tout-en-un. L'utilisateur envoie une capture d'écran de
-  n'importe quel graphique (actions, crypto, forex, indices, matières
-  premières, futures; n'importe quelle unité de temps, n'importe quelle
-  plateforme : TradingView, MT4/MT5, Binance, broker...) et reçoit
-  directement un plan de trade : LONG (achat) / SHORT (vente) / PAS DE TRADE,
-  l'entrée, le stop loss, un ou deux take profit, le ratio risque/rendement,
-  le niveau d'invalidation et, s'il donne son capital, la taille de position.
-  Regroupe en une seule skill la lecture du graphique (scanner), le timing
-  d'entrée, le plan de sortie (SL/TP), le contrôle du risque, le calcul de
-  taille et les alertes. À utiliser dès qu'une capture de chart est envoyée,
-  ou quand l'utilisateur dit « analyse ce chart », « buy ou sell ? »,
-  « long ou short ? », « donne-moi SL et TP », « je rentre où ? », « c'est
-  quoi le setup », « what's the trade », « long or short », « where's my
-  stop », « entry stop target ».
-argument-hint: "[capture du chart] [capital et risque % optionnels]"
+  Snap & Trade, la skill de trading tout-en-un. (1) L'utilisateur envoie une
+  capture d'écran de n'importe quel graphique (actions, crypto, forex,
+  indices, matières premières, futures; toute unité de temps, toute
+  plateforme : TradingView, MT4/MT5, Binance...) et reçoit l'analyse
+  complète étape par étape puis une fiche de trade visuelle : LONG / SHORT /
+  PAS DE TRADE, entrée, stop loss, TP1, TP2, R:R, invalidation, taille de
+  position. (2) Elle contient aussi les 11 modules du pack day-trader :
+  scanner (cassures, drapeaux, survente sur tout le marché US), news (Yahoo +
+  8-K SEC), analyst (résultats trimestriels SEC EDGAR), entry (timing de
+  cassure du range d'ouverture), exit (stop et objectif), timemachine
+  (10 000 simulations + historique), budget (taille de position), risk
+  (contrôle des limites PASS/BLOCK), broker (tickets d'ordre Alpaca, paper
+  par défaut, jamais sans un oui), alerts (alertes de prix, cloche
+  d'ouverture) et pelosi (trades déclarés du Congrès). À utiliser dès qu'une
+  capture de chart est envoyée, ou quand l'utilisateur dit « analyse ce
+  chart », « buy ou sell ? », « long ou short ? », « donne-moi SL et TP »,
+  « je rentre où ? », « scanne le marché », « des news sur TSLA ? »,
+  « résultats d'Apple », « combien d'actions ? », « check mon risque »,
+  « passe l'ordre », « alerte-moi si », « qu'achète Pelosi », « what's the
+  trade », « long or short », « scan the market », « any news on ».
+argument-hint: "[capture du chart] | [module] [TICKER] [capital, risque %]"
 ---
 
 # Snap & Trade
 
-Une capture d'écran entre, un plan de trade sort. Pas de questions inutiles :
-si le chart est lisible, on répond directement avec un sens, une entrée, un
-stop et des objectifs. Si le chart ne montre pas d'avantage clair, la bonne
-réponse est **PAS DE TRADE**, et on dit quoi attendre.
+Une seule skill, deux façons de l'utiliser :
 
-`${CLAUDE_SKILL_DIR}` est le dossier de cette skill.
+1. **Mode capture** (le principal) : une capture d'écran entre, l'analyse
+   détaillée puis une fiche de trade sortent.
+2. **Mode modules** : les 11 outils du pack day-trader (scanner, news,
+   résultats, entrée, sortie, simulation, taille, risque, ordre, alertes,
+   Congrès), chacun appelable seul ou enchaîné.
 
-## Ce qu'il faut lire avant d'analyser
+`${CLAUDE_SKILL_DIR}` est le dossier de cette skill. Tous les scripts et
+fichiers d'exemple sont dans `${CLAUDE_SKILL_DIR}/scripts/`. Sous Windows,
+`python` au lieu de `python3`. Les scripts n'utilisent que Python standard.
 
-- `references/lecture-chart.md` : la checklist pour lire une capture
-  (actif, unité de temps, axe des prix, tendance, structure, niveaux,
-  bougies, indicateurs visibles, volume).
-- `references/setups.md` : les setups reconnus, et pour chacun où va
-  l'entrée, le stop et les objectifs, en long comme en short.
+---
 
-## Étapes
+## Mode capture
 
-1. **Lire la capture** avec `references/lecture-chart.md`. Noter l'actif,
-   l'unité de temps, le dernier prix et les niveaux, uniquement à partir de
-   ce qui est visible. Ne jamais inventer un prix qu'on ne peut pas lire sur
-   l'axe. Si l'axe des prix est illisible, le dire et exprimer le plan en
-   repères visibles (« sous le dernier creux à gauche ») ou demander une
-   capture plus nette.
-2. **Choisir le setup** dans `references/setups.md`, et compter les
-   confluences (barème ci-dessous). Moins de 2 points : PAS DE TRADE.
-3. **Placer entrée, SL et TP** selon le setup :
-   - Le stop va là où l'idée est fausse : au-delà du dernier creux (long)
-     ou du dernier sommet (short) qui protège le setup, plus une marge
-     (environ 10 à 25 % de la taille moyenne d'une bougie visible).
-     Jamais au milieu du bruit.
-   - TP1 au prochain niveau de support/résistance visible, TP2 au niveau
-     suivant ou à 3R.
-   - Un stop qui ne tient pas sur un niveau logique = pas de trade.
-4. **Vérifier les chiffres** avec le script, qui refuse un stop du mauvais
-   côté et calcule R:R et taille :
+### Avant d'analyser, lire
+
+- `references/lecture-chart.md` : la checklist de lecture d'une capture.
+- `references/setups.md` : les setups, et où vont entrée, stop et objectifs.
+- `references/format-reponse.md` : **le format exact de la réponse** (à
+  suivre à la lettre : analyse étape par étape, puis la fiche visuelle).
+
+### Étapes
+
+1. **Lire la capture** (`lecture-chart.md`) : actif, unité de temps, dernier
+   prix, échelle, structure, niveaux, bougies clôturées, indicateurs et
+   volume visibles. Ne jamais inventer un prix illisible. Estimé = « ≈ ».
+   Noter aussi l'heure affichée : séance ouverte ou fermée ?
+2. **Choisir le setup** (`setups.md`) et **compter les confluences** :
+
+   | élément | 1 point si |
+   | --- | --- |
+   | tendance | le trade va dans le sens de la structure de l'UT affichée |
+   | niveau | entrée sur support/résistance, cassure clôturée ou retest |
+   | signal bougie | bougie de confirmation clôturée |
+   | momentum | indicateur visible dans le même sens (ou divergence pour un retournement) |
+   | volume | volume visible en hausse dans le sens du trade |
+
+   0–1 : PAS DE TRADE · 2 : faible · 3 : moyenne · 4–5 : élevée.
+   Contre la tendance de fond : plafonné à « faible ».
+3. **Placer entrée, SL, TP** : stop derrière le niveau qui invalide l'idée +
+   marge (10–25 % d'une bougie moyenne) ; TP1 au prochain niveau, TP2 au
+   suivant ou à 3R. Pas de niveau logique pour le stop = pas de trade.
+4. **Vérifier avec le script** (obligatoire, montrer le résultat) :
 
    ```bash
-   python3 "${CLAUDE_SKILL_DIR}/scripts/plan.py" --side short --entry 67450 --sl 68120 --tp 66110 65300
+   python3 "${CLAUDE_SKILL_DIR}/scripts/plan.py" --side short --entry 28295 --sl 28375 --tp 28150 28100
    python3 "${CLAUDE_SKILL_DIR}/scripts/plan.py" --side long --entry 1.0850 --sl 1.0822 --tp 1.0910 --account 2000 --risk-pct 1 --point-value 100000
    ```
 
-   `--point-value` = valeur d'un point pour 1 unité (1 pour actions/crypto,
-   100000 pour un lot forex standard, 50 pour l'ES, 20 pour le NQ...).
-   Sous Windows, `python` au lieu de `python3`.
-5. **Contrôle du risque** (règles fixes, jamais assouplies) :
-   - R:R vers TP1 d'au moins **1.5**. En dessous : PAS DE TRADE, ou
-     proposer d'attendre un meilleur prix d'entrée (ordre limite) qui
-     ramène le R:R à 1.5.
-   - Si l'utilisateur a donné son capital : risque par trade 1 % par défaut,
-     jamais plus de 2 % sauf demande explicite.
-   - Contre la tendance de fond : confiance plafonnée à « faible ».
-6. **Répondre** avec le format ci-dessous, dans la langue de l'utilisateur.
+   `--point-value` : 1 actions/crypto, 100000 lot forex, 50 ES, 20 NQ, 2 MNQ,
+   5 MES. Si le script REFUSE, le trade est refusé (proposer l'entrée limite
+   qu'il suggère, ou PAS DE TRADE).
+5. **Enrichir si possible** (action ou ETF US uniquement, données gratuites
+   Yahoo/SEC, peuvent avoir du retard) :
+   - `news.py check TICKER` : une news ou un 8-K récent qui explique le
+     mouvement ? Le signaler.
+   - `facts.py` (module analyst) : résultats publiés cette semaine ? Le
+     signaler comme risque de gap.
+   - Plan **long** sur action US : proposer le module `timemachine` pour
+     rejouer le plan sur 60 jours de bougies 5 min.
+   Pour crypto, forex, indices, futures : sauter cette étape et le dire.
+6. **Risque** : R:R vers TP1 ≥ **1,5**. Capital donné : risque 1 % par
+   défaut, avertir au-delà de 2 %. Jamais assouplir.
+7. **Répondre** avec `references/format-reponse.md`, dans la langue de
+   l'utilisateur.
+8. **Proposer la suite** en une ligne : taille (module `budget`), contrôle
+   (module `risk`), alertes sur SL/TP (module `alerts`), ordre en paper
+   trading (module `broker`).
 
-## Barème de confluence
+---
 
-Un point par élément présent et visible sur la capture :
+## Mode modules
 
-| élément | compte si |
-| --- | --- |
-| tendance | le trade va dans le sens de la structure (sommets/creux) de l'unité de temps affichée |
-| niveau | l'entrée se fait sur un support/résistance, une cassure clôturée ou un retest |
-| signal bougie | une bougie de confirmation clôturée (englobante, pin bar, cassure franche) |
-| momentum | un indicateur visible (RSI, MACD, moyennes mobiles...) va dans le même sens, ou une divergence pour un retournement |
-| volume | volume visible en hausse sur le mouvement dans le sens du trade |
+Chaque module a sa doc complète dans `references/modules/<module>.md`.
+**Lire cette doc avant de lancer le script du module.**
 
-0 à 1 : PAS DE TRADE. 2 : confiance faible. 3 : moyenne. 4 à 5 : élevée.
+| module | script | à quoi il sert | déclencheurs |
+| --- | --- | --- | --- |
+| scanner | `scan.py` | scanne les actions US : cassure 20 jours, drapeau, reprise MM20, survente, cassure du range d'ouverture → `trader/watchlist.json` | « scanne le marché », « qu'est-ce qui casse », « watchlist » |
+| news | `news.py` | news Yahoo + 8-K SEC par ticker, nouvelles seulement, taguées | « des news sur », « pourquoi ça bouge », « briefing » |
+| analyst | `facts.py` | résultats SEC EDGAR : CA, marges, BPA, trimestre vs an dernier, TTM | « résultats de », « le 10-Q », « marges » |
+| entry | `entry.py` | attend la bougie qui CLÔTURE au-dessus du range d'ouverture ou d'un niveau → `trader/entry.json` | « dis-moi quand entrer », « surveille TSLA » |
+| exit | `exit.py` | stop (milieu du range, bas, %, ATR) et objectif (1R/2R) → `trader/plan.json` | « mon stop », « plan de sortie » |
+| timemachine | `timemachine.py` | 10 000 séances simulées + chaque fois passée où le setup s'est déclenché | « simule ce trade », « backtest », « quelles chances » |
+| budget | `size.py` | taille en actions entières dans 4 limites → `trader/orders.json` (bracket Alpaca) | « combien d'actions », « j'ai 5 000 $ » |
+| risk | `check.py` | PASS / BLOCK sur toutes les limites (perte max, R:R, perte du jour, fenêtre horaire...) | « check mon ordre », « est-ce que ça passe » |
+| broker | `ticket.py` | ticket d'ordre lisible + JSON Alpaca, paper par défaut, clôture avant la fin de séance | « passe l'ordre », « coupe ma position », « connecte Alpaca » |
+| alerts | `alerts.py` | alertes stop/objectif/heure de sortie, %, cloche d'ouverture NYSE, prix → `trader/prices.json` | « alerte-moi si », « le marché est ouvert ? » |
+| pelosi | `ptr.py` | trades déclarés des membres du Congrès (PTR de la Chambre) | « qu'achète Pelosi », « trades du Congrès » |
 
-## Format de réponse
+Fichiers d'exemple dans `scripts/` : `config.example.json` (règles de
+budget et de risque, à copier en `trader/config.json`), `targets.example.json`,
+`alerts.example.json`, `metrics.example.json`,
+`claude_desktop_config.example.json` (serveur MCP Alpaca).
 
-```
-SIGNAL : SHORT (vente)  ·  confiance : moyenne (3/5)
-Actif / UT : BTCUSD · 1h  ·  dernier prix lu : 67 480
+### La chaîne complète (journée de day trading, actions US, long)
 
-Entrée      67 450  (limite sur le retest de l'ancien support)
-Stop loss   68 120  (au-dessus du dernier sommet 68 010 + marge)
-TP1         66 110  (2.0R, support du 8)
-TP2         65 300  (3.2R, creux de la semaine)
-Invalidation : clôture 1h au-dessus de 68 120
+`scanner` → `news` → `entry` → `exit` → `timemachine` → `budget` → `risk` →
+`broker` → `alerts`. Les modules se passent le relais par les fichiers du
+dossier `trader/` (dans le dossier de travail).
 
-Pourquoi : structure baissière (sommets décroissants), cassure clôturée du
-support 67 600, retest en cours, RSI sous 50.
-Gestion : à TP1, prendre la moitié et remonter le stop au prix d'entrée.
-Taille (2 000 $, risque 1 %) : 0.0298 BTC → perte max 20 $ au stop.
-```
+---
 
-Pour PAS DE TRADE : dire pourquoi en une ligne, et ce qui ferait naître un
-trade (« long si clôture 4h au-dessus de 1.0900, stop sous 1.0860 »).
+## Règles (tous modes)
 
-## Règles
-
-- Toujours une réponse directe : LONG, SHORT ou PAS DE TRADE. Pas de « ça
-  dépend » sans plan.
-- Le stop et les objectifs sont fixés avant l'entrée. Un stop ne s'éloigne
-  jamais une fois le trade en cours.
-- Une bougie qui n'est pas clôturée ne confirme rien.
-- Chaque prix vient de la capture (ou d'un prix donné par l'utilisateur).
-  Rien d'inventé. Si un chiffre est estimé, l'écrire « ≈ ».
-- La confiance ne s'exprime jamais en pourcentage de réussite : une capture
-  ne permet pas de calculer une probabilité.
-- Une capture montre le passé. Le plan est une lecture technique, pas une
-  prédiction.
+- Toujours une réponse directe : LONG, SHORT ou PAS DE TRADE.
+- Stop et objectifs fixés avant l'entrée ; un stop ne s'éloigne jamais.
+- Une bougie non clôturée ne confirme rien.
+- Aucun prix inventé ; aucun pourcentage de réussite tiré d'une capture
+  (seul le module `timemachine` donne des fréquences, calculées sur données).
+- Une capture montre le passé : le plan est une lecture, pas une prédiction.
 
 ## Ce que la skill ne fait jamais
 
-Elle ne passe aucun ordre, ne promet aucun gain, n'élargit jamais un stop
-pour faire passer un trade, et ne pousse jamais à augmenter le levier.
+- Passer un ordre sans les trois conditions du module `broker` : `risk` a
+  donné PASS sur cet ordre exact aujourd'hui, l'utilisateur a écrit un oui
+  explicite pour cet ordre, et il a cliqué « Autoriser une fois » sur la
+  carte de Claude. Paper trading par défaut. Jamais d'outil d'ordre en
+  « Toujours autoriser ».
+- Demander ou afficher des clés API dans le chat (variables
+  d'environnement ou config Claude Desktop uniquement).
+- Promettre un gain, élargir un stop, pousser au levier.
 
 ## Avertissement
 
 Outil d'analyse technique et d'apprentissage, pas un conseil en
-investissement personnalisé. La plupart des traders particuliers perdent
-de l'argent, surtout avec levier. Le stop est un plan, pas une garantie :
-un gap ou un marché rapide peut l'exécuter plus loin. À tester d'abord en
-compte démo / paper trading.
+investissement personnalisé. La plupart des traders particuliers perdent de
+l'argent, surtout avec levier. Le stop est un plan, pas une garantie. À
+tester d'abord en démo / paper trading.
