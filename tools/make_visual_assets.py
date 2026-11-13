@@ -60,17 +60,7 @@ for ident,session,axis,context,stop,signal in (
                   'images':[{'path':str(p.relative_to(ROOT)), 'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in files],
                   'expected':{'latest_price':8372 if axis else None,'signal':signal,'available':3}})
 (ROOT/'evaluation/cases.json').write_text(json.dumps({'version':1,'scope':'synthetic development fixtures; not a held-out market benchmark','cases':cases},indent=2)+'\n')
-frames=[]
-for heading,lines in [
- ('1 / Read the chart', ['Axis latest: 8372','Cursor OHLC: 8394 — historical candle','Panel: 8361 — do not substitute']),
- ('2 / Require context', ['5m only: NO TRADE','Request the same instrument on 1h','No guessed background trend']),
- ('3 / Check the plan', ['1h structure: down; closed trigger confirmed','3/3 available — volume and momentum unavailable','Stop distance 18 >= 1.5 x 10; TP1 gross R:R 1.78']),
- ('4 / Return a short card', ['SHORT candidate on synthetic data','Entry 8372 | SL 8390 | TP1 8340','No orders; unknown costs; no performance claim'])]:
-    im=chart('Illustrative workflow')
-    d=ImageDraw.Draw(im);d.rectangle((40,125,818,430),fill='#1d2c40',outline='#55d9b4',width=2)
-    d.text((64,148),heading,fill='#55d9b4',font=font(28))
-    for i,line in enumerate(lines):d.text((64,215+i*57),line,fill='white',font=font(18))
-    frames.append(im)
-(ROOT/'assets').mkdir(exist_ok=True)
-frames[0].save(ROOT/'assets/demo.gif',save_all=True,append_images=frames[1:],duration=2400,loop=0)
-print('Generated synthetic fixtures and illustrative demo.gif')
+# README visuals have their own layout; keep evaluation charts unobstructed.
+from make_demo import main as make_demo
+make_demo()
+print('Generated synthetic fixtures and README visuals')

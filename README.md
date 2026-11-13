@@ -10,10 +10,11 @@ Send an execution chart **and a higher timeframe of the same instrument**
 (e.g. 5m + 1h). Get a short **LONG, SHORT or NO TRADE** card, with checked
 entry/stop/targets, reward-to-risk and optional position sizing.
 
-![Illustrative Snap & Trade workflow using synthetic chart data](assets/demo.gif)
+![Illustrative chart and readable trade card, shown side by side](assets/demo.png)
 
-*Illustrative animation drawn from synthetic inputs, not a recorded model
-session, real market data, or evidence of trading performance.*
+*Illustration with synthetic data, not a recorded model session or performance result.*
+
+[Watch the three-step illustrative animation](assets/demo.gif).
 
 ## What changed in v2.3
 
